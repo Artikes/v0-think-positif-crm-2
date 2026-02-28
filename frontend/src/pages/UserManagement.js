@@ -119,15 +119,9 @@ const UserManagement = () => {
       return;
     }
 
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur? Ses tâches et événements seront désassignés.')) return;
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur?')) return;
 
     try {
-      // Clean up foreign key references before deleting profile
-      await supabase.from('tasks').update({ assigned_to: null }).eq('assigned_to', id);
-      await supabase.from('tasks').update({ created_by: null }).eq('created_by', id);
-      await supabase.from('schedules').update({ user_id: null }).eq('user_id', id);
-      await supabase.from('clients').update({ assigned_to: null }).eq('assigned_to', id);
-
       const { error } = await supabase
         .from('profiles')
         .delete()

@@ -382,7 +382,7 @@ const Schedule = () => {
         </div>
 
         {/* Week View */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-2">
           {weekDays.map((day, index) => {
             const dayEvents = getEventsForDay(day);
             const today = isToday(day);
@@ -390,7 +390,7 @@ const Schedule = () => {
             return (
               <Card 
                 key={index} 
-                className={`min-h-[120px] lg:min-h-[300px] ${today ? 'ring-2 ring-primary' : ''}`}
+                className={`min-h-[300px] ${today ? 'ring-2 ring-primary' : ''}`}
                 data-testid={`schedule-day-${index}`}
               >
                 <CardHeader className="p-3 pb-2">
@@ -405,7 +405,7 @@ const Schedule = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="p-2 pt-0">
-                  <ScrollArea className="h-auto max-h-[180px] lg:max-h-[220px]">
+                  <ScrollArea className="h-[220px]">
                     <div className="space-y-2">
                       {dayEvents.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-4">

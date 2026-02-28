@@ -48,10 +48,10 @@ import {
 } from '../components/ui/dropdown-menu';
 
 const TASK_STATUS = {
-  todo: { label: 'À faire', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300', icon: Circle, cardBg: 'border-l-4 border-l-slate-400 bg-slate-50/50 dark:bg-slate-900/20', headerBg: 'bg-slate-100 dark:bg-slate-800' },
-  in_progress: { label: 'En cours', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: Clock, cardBg: 'border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20', headerBg: 'bg-blue-100 dark:bg-blue-900/30' },
-  review: { label: 'En révision', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', icon: AlertCircle, cardBg: 'border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20', headerBg: 'bg-orange-100 dark:bg-orange-900/30' },
-  done: { label: 'Terminé', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2, cardBg: 'border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20', headerBg: 'bg-green-100 dark:bg-green-900/30' },
+  todo: { label: 'À faire', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300', icon: Circle },
+  in_progress: { label: 'En cours', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: Clock },
+  review: { label: 'En révision', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', icon: AlertCircle },
+  done: { label: 'Terminé', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2 },
 };
 
 const TASK_PRIORITY = {
@@ -375,9 +375,9 @@ const Tasks = () => {
             
             return (
               <div key={status} className="space-y-3">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${config.headerBg}`}>
-                  <StatusIcon className="h-4 w-4" />
-                  <h3 className="font-semibold text-sm">{config.label}</h3>
+                <div className="flex items-center gap-2 px-1">
+                  <StatusIcon className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-medium text-sm">{config.label}</h3>
                   <Badge variant="secondary" className="ml-auto text-xs">
                     {tasksInStatus.length}
                   </Badge>
@@ -387,7 +387,7 @@ const Tasks = () => {
                   {tasksInStatus.map((task) => (
                     <Card 
                       key={task.id} 
-                      className={`hover:shadow-md transition-all cursor-pointer group ${TASK_STATUS[task.status]?.cardBg || ''}`}
+                      className="hover:shadow-md transition-all cursor-pointer group"
                       data-testid={`task-card-${task.id}`}
                     >
                       <CardContent className="p-4 space-y-3">
