@@ -1,0 +1,194 @@
+{
+  "project_name": "CRM & Talent Management Platform",
+  "design_philosophy": {
+    "identity": "E1 Anti-AI Designer",
+    "core_concept": "French Rationalism meets Modern SaaS. Precision, Clarity, and Hierarchy.",
+    "emotional_tone": "Professional, Efficient, Trustworthy, Dynamic.",
+    "theme_strategy": "Swiss & High-Contrast (Archetype 4) adapted for Data Density (Archetype 2)."
+  },
+  "typography": {
+    "font_family": {
+      "headings": "\"Plus Jakarta Sans\", sans-serif",
+      "body": "\"Inter\", sans-serif",
+      "mono": "\"JetBrains Mono\", monospace"
+    },
+    "imports": [
+      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+    ],
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight",
+      "h2": "text-3xl font-semibold tracking-tight",
+      "h3": "text-2xl font-semibold tracking-tight",
+      "h4": "text-xl font-semibold tracking-tight",
+      "body": "text-sm md:text-base font-normal leading-relaxed",
+      "small": "text-xs font-medium text-muted-foreground",
+      "label": "text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+    },
+    "rules": [
+      "Headings must use Plus Jakarta Sans.",
+      "Body text must use Inter.",
+      "Never use Inter for H1/H2.",
+      "Use 'tracking-tight' for all headings larger than 24px."
+    ]
+  },
+  "colors": {
+    "palette_strategy": "Dark Grey & White with Electric Blue Accents",
+    "theme_config": {
+      "light": {
+        "background": "210 40% 98%",
+        "foreground": "222 47% 11%",
+        "card": "0 0% 100%",
+        "card_foreground": "222 47% 11%",
+        "popover": "0 0% 100%",
+        "popover_foreground": "222 47% 11%",
+        "primary": "222 47% 11%",
+        "primary_foreground": "210 40% 98%",
+        "secondary": "210 40% 96.1%",
+        "secondary_foreground": "222 47% 11%",
+        "muted": "210 40% 96.1%",
+        "muted_foreground": "215.4 16.3% 46.9%",
+        "accent": "210 40% 96.1%",
+        "accent_foreground": "222 47% 11%",
+        "destructive": "0 84.2% 60.2%",
+        "destructive_foreground": "210 40% 98%",
+        "border": "214.3 31.8% 91.4%",
+        "input": "214.3 31.8% 91.4%",
+        "ring": "222 47% 11%",
+        "chart_1": "221 83% 53%",
+        "chart_2": "173 58% 39%",
+        "chart_3": "197 37% 24%",
+        "chart_4": "43 74% 66%",
+        "chart_5": "27 87% 67%"
+      },
+      "dark": {
+        "background": "222 47% 11%",
+        "foreground": "210 40% 98%",
+        "card": "217 33% 17%",
+        "card_foreground": "210 40% 98%",
+        "popover": "222 47% 11%",
+        "popover_foreground": "210 40% 98%",
+        "primary": "210 40% 98%",
+        "primary_foreground": "222 47% 11%",
+        "secondary": "217.2 32.6% 17.5%",
+        "secondary_foreground": "210 40% 98%",
+        "muted": "217.2 32.6% 17.5%",
+        "muted_foreground": "215 20.2% 65.1%",
+        "accent": "217.2 32.6% 17.5%",
+        "accent_foreground": "210 40% 98%",
+        "destructive": "0 62.8% 30.6%",
+        "destructive_foreground": "210 40% 98%",
+        "border": "217.2 32.6% 17.5%",
+        "input": "217.2 32.6% 17.5%",
+        "ring": "212.7 26.8% 83.9%",
+        "chart_1": "220 70% 50%",
+        "chart_2": "160 60% 45%",
+        "chart_3": "30 80% 55%",
+        "chart_4": "280 65% 60%",
+        "chart_5": "340 75% 55%"
+      }
+    },
+    "status_colors": {
+      "success": "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
+      "warning": "text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400",
+      "error": "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400",
+      "info": "text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400",
+      "high_potential": "text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400"
+    }
+  },
+  "layout_grid": {
+    "dashboard_mode": "Bento Grid Mode B (High Density)",
+    "rules": [
+      "Use 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' for main dashboard.",
+      "Gap should be 'gap-4' or 'gap-6'.",
+      "Summary cards (KPIs) span 1 column.",
+      "Main charts span 2 or 3 columns.",
+      "Recent activity lists span 1 column but 2 rows (vertical)."
+    ]
+  },
+  "components": {
+    "sidebar": {
+      "style": "Fixed, full height, border-r.",
+      "classes": "w-64 h-screen fixed left-0 top-0 border-r bg-card/50 backdrop-blur-xl z-50 hidden lg:block",
+      "active_item": "bg-primary/10 text-primary font-medium"
+    },
+    "cards": {
+      "style": "Clean, minimal, 1px border.",
+      "classes": "rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow duration-200"
+    },
+    "buttons": {
+      "style": "Pill or Slightly Rounded.",
+      "primary": "rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow h-10 px-4 py-2",
+      "ghost": "rounded-md hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+    },
+    "tables": {
+      "style": "Clean rows, sticky header.",
+      "classes": "w-full caption-bottom text-sm",
+      "header_row": "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      "cell": "p-4 align-middle [&:has([role=checkbox])]:pr-0"
+    }
+  },
+  "spacing_and_sizing": {
+    "padding_standard": "p-6 md:p-8",
+    "container_max_width": "max-w-7xl mx-auto",
+    "border_radius": {
+      "sm": "rounded-sm",
+      "md": "rounded-md",
+      "lg": "rounded-lg",
+      "full": "rounded-full"
+    }
+  },
+  "motion": {
+    "default_transition": "transition-all duration-200 ease-in-out",
+    "hover_lift": "hover:-translate-y-0.5 hover:shadow-lg",
+    "page_enter": {
+      "initial": { "opacity": 0, "y": 10 },
+      "animate": { "opacity": 1, "y": 0 },
+      "exit": { "opacity": 0, "y": -10 }
+    }
+  },
+  "images": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1759160897213-b919da384a44?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHw0fHxtb2Rlcm4lMjBvZmZpY2UlMjBhcmNoaXRlY3R1cmUlMjBhYnN0cmFjdHxlbnwwfHx8fDE3NzIyNzA4MTd8MA&ixlib=rb-4.1.0&q=85",
+      "desc": "Modern geometric architecture - use for Auth pages"
+    },
+    "avatars": [
+      "https://images.unsplash.com/photo-1655249481446-25d575f1c054?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTV8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBvcnRyYWl0JTIwaGVhZHNob3R8ZW58MHx8fHwxNzcyMjY3OTE4fDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1576558656222-ba66febe3dec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTV8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBvcnRyYWl0JTIwaGVhZHNob3R8ZW58MHx8fHwxNzcyMjY3OTE4fDA&ixlib=rb-4.1.0&q=85",
+      "https://images.pexels.com/photos/6572210/pexels-photo-6572210.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    ],
+    "expertise_themes": {
+      "culture": "https://images.unsplash.com/photo-1764436271162-a99077ebd3cb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwxfHxjdWx0dXJhbCUyMGFydHMlMjBwZXJmb3JtYW5jZSUyMGFic3RyYWN0fGVufDB8fHx8MTc3MjI3MDgxOHww&ixlib=rb-4.1.0&q=85",
+      "industry": "https://images.unsplash.com/photo-1761195696590-3490ea770aa1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHxpbmR1c3RyaWFsJTIwYXV0b21hdGlvbiUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzcyMjcwODE5fDA&ixlib=rb-4.1.0&q=85",
+      "sport": "https://images.unsplash.com/photo-1746003625471-8785a7d19d78?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODh8MHwxfHNlYXJjaHwxfHxhdGhsZXRlJTIwdHJhaW5pbmclMjBwcm9mZXNzaW9uYWx8ZW58MHx8fHwxNzcyMjcwODIwfDA&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "accessibility": {
+    "contrast_check": "Ensure 4.5:1 ratio for text.",
+    "interactive_elements": "Must have :focus-visible styles (ring-2 ring-ring ring-offset-2).",
+    "screen_readers": "Use visually-hidden labels for icon-only buttons."
+  },
+  "french_language_rules": {
+    "text_expansion": "Accommodate 20-30% longer text than English.",
+    "date_format": "dd/MM/yyyy",
+    "currency": "EUR (1 234,56 €)",
+    "capitalization": "French sentence case rules (mostly lowercase except first letter)."
+  },
+  "universal_guidelines": [
+    "Do NOT use gradients for main backgrounds.",
+    "Use 'sonner' for toasts.",
+    "Use 'lucide-react' for icons.",
+    "All interactive elements MUST have data-testid.",
+    "Do NOT use HTML <select>, use Shadcn <Select>.",
+    "Do NOT use HTML <input type='date'>, use Shadcn <Calendar> with Popover.",
+    "Avoid centering text in dashboards; left-align is standard for readability.",
+    "Add transition-all duration-200 to all interactive elements."
+  ],
+  "instructions_to_main_agent": [
+    "Update /app/frontend/src/index.css with the provided HSL variables.",
+    "Update /app/frontend/public/index.html to include the Google Fonts.",
+    "Use 'Plus Jakarta Sans' for all headings (h1-h6) and 'Inter' for body.",
+    "Implement the Layout Wrapper with a Sidebar that collapses on mobile.",
+    "Ensure the Theme Toggle works using 'next-themes'.",
+    "Follow the Bento Grid layout for the Dashboard page."
+  ]
+}
