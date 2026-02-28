@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId) => {
+    if (!supabase) return null;
     try {
       const { data } = await supabase
         .from('profiles')

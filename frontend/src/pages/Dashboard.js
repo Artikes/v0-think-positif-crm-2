@@ -46,6 +46,10 @@ const Dashboard = () => {
   }, []);
 
   const fetchDashboardData = async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     try {
       const [clientsRes, trainersRes, talentsRes, tasksRes] = await Promise.all([
         supabase.from('clients').select('id, revenue, created_at', { count: 'exact' }),

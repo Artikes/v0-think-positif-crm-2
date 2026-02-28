@@ -3,6 +3,16 @@ const path = require("path");
 const webpack = require("webpack");
 require("dotenv").config();
 
+// Map Vercel Supabase integration env vars (NEXT_PUBLIC_*) to REACT_APP_* 
+// BEFORE CRA's webpack config reads them. This ensures CRA's built-in
+// DefinePlugin picks them up as REACT_APP_* variables.
+if (process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.REACT_APP_SUPABASE_URL) {
+  process.env.REACT_APP_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+}
+if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && !process.env.REACT_APP_SUPABASE_ANON_KEY) {
+  process.env.REACT_APP_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+}
+
 // Check if we're in development/preview mode (not production build)
 // Craco sets NODE_ENV=development for start, NODE_ENV=production for build
 const isDevServer = process.env.NODE_ENV !== "production";
@@ -48,18 +58,6 @@ const webpackConfig = {
       '@': path.resolve(__dirname, 'src'),
     },
     configure: (webpackConfig) => {
-
-      // Map Vercel Supabase integration env vars (NEXT_PUBLIC_*) to REACT_APP_* so CRA can access them
-      const envMappings = {};
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.REACT_APP_SUPABASE_URL) {
-        envMappings['process.env.REACT_APP_SUPABASE_URL'] = JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL);
-      }
-      if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && !process.env.REACT_APP_SUPABASE_ANON_KEY) {
-        envMappings['process.env.REACT_APP_SUPABASE_ANON_KEY'] = JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-      }
-      if (Object.keys(envMappings).length > 0) {
-        webpackConfig.plugins.push(new webpack.DefinePlugin(envMappings));
-      }
 
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
