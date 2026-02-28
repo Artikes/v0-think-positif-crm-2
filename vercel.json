@@ -3,9 +3,6 @@
   "installCommand": "cd frontend && npm install --legacy-peer-deps",
   "outputDirectory": "frontend/build",
   "framework": null,
-  "env": {
-    "NODE_VERSION": "18"
-  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
