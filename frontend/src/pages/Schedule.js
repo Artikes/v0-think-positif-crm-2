@@ -67,10 +67,14 @@ const Schedule = () => {
     color: '#3b82f6'
   });
 
-  useEffect(() => {
-    fetchEvents();
-    fetchUsers();
-  }, [currentDate, fetchEvents]);
+  const getStartOfWeek = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -108,14 +112,10 @@ const Schedule = () => {
     }
   };
 
-  const getStartOfWeek = (date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
+  useEffect(() => {
+    fetchEvents();
+    fetchUsers();
+  }, [currentDate, fetchEvents]);
 
   const getWeekDays = () => {
     const startOfWeek = getStartOfWeek(currentDate);
