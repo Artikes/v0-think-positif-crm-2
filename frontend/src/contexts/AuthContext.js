@@ -10,15 +10,43 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, userMeta) => {
     if (!supabase) return null;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-      return data;
+
+      if (data) return data;
+
+      // Profile doesn't exist (user created before trigger or trigger failed)
+      // Auto-create it from the auth user metadata
+      if (error && (error.code === 'PGRST116' || !data)) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const meta = userMeta || authUser?.user_metadata || {};
+        const email = authUser?.email || '';
+
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: email,
+            name: meta.name || meta.full_name || email.split('@')[0] || 'Utilisateur',
+            role: meta.role || 'admin',
+          }, { onConflict: 'id' })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          return null;
+        }
+        return newProfile;
+      }
+
+      return null;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -46,7 +74,7 @@ export const AuthProvider = ({ children }) => {
         
         if (session?.user) {
           setUser(session.user);
-          const profileData = await fetchProfile(session.user.id);
+          const profileData = await fetchProfile(session.user.id, session.user.user_metadata);
           if (mounted) setProfile(profileData);
         } else {
           setUser(null);
@@ -75,7 +103,7 @@ export const AuthProvider = ({ children }) => {
         
         if (session?.user) {
           setUser(session.user);
-          const profileData = await fetchProfile(session.user.id);
+          const profileData = await fetchProfile(session.user.id, session.user.user_metadata);
           if (mounted) setProfile(profileData);
         } else {
           setUser(null);
