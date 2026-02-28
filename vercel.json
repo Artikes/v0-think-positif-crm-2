@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd frontend && npm install --legacy-peer-deps",
+  "installCommand": "cd frontend && npm install --legacy-peer-deps && cd node_modules/ajv-keywords && npm install ajv@8.17.1 --no-save --legacy-peer-deps",
   "buildCommand": "cd frontend && npx craco build",
   "outputDirectory": "frontend/build",
   "framework": null,
