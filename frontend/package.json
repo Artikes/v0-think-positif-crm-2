@@ -61,6 +61,9 @@
     "zod": "^3.24.4",
     "@craco/craco": "^7.1.0"
   },
+  "overrides": {
+    "schema-utils": "3.3.0"
+  },
   "scripts": {
     "start": "craco start",
     "build": "craco build",
