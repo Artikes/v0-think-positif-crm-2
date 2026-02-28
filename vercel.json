@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd frontend && npx craco build",
+  "buildCommand": "cd frontend && NODE_OPTIONS=--openssl-legacy-provider npx craco build",
   "installCommand": "cd frontend && npm install --legacy-peer-deps",
   "outputDirectory": "frontend/build",
   "framework": null,

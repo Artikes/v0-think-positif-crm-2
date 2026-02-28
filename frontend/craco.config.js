@@ -61,6 +61,13 @@ const webpackConfig = {
         webpackConfig.plugins.push(new webpack.DefinePlugin(envMappings));
       }
 
+      // Remove ForkTsCheckerWebpackPlugin — this is a JS project and the plugin
+      // causes "Unknown keyword formatMinimum" errors on Node 24 due to
+      // ajv@6 / ajv-keywords@3 incompatibilities in its bundled schema-utils.
+      webpackConfig.plugins = webpackConfig.plugins.filter(
+        (plugin) => plugin.constructor.name !== 'ForkTsCheckerWebpackPlugin'
+      );
+
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
           ...webpackConfig.watchOptions,
