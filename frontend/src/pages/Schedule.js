@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import Layout from '../components/layout/Layout';
@@ -70,9 +70,9 @@ const Schedule = () => {
   useEffect(() => {
     fetchEvents();
     fetchUsers();
-  }, [currentDate]);
+  }, [currentDate, fetchEvents]);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       const startOfWeek = getStartOfWeek(currentDate);
       const endOfWeek = new Date(startOfWeek);
@@ -96,7 +96,7 @@ const Schedule = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate]);
 
   const fetchUsers = async () => {
     try {
