@@ -19,9 +19,8 @@ export default defineConfig({
     'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''),
   },
   esbuild: {
-    jsx: 'automatic',
-    include: /\.[jt]sx?$/,
-    exclude: [],
+    include: /src\/.*\.[jt]sx?$/,
+    loader: 'jsx',
   },
   optimizeDeps: {
     esbuildOptions: {
