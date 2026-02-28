@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npx craco build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": "build",
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
