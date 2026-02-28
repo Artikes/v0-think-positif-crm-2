@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase, ROLES } from '../lib/supabase';
+import { supabase, supabaseConfigured, ROLES } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
@@ -30,6 +30,14 @@ export const AuthProvider = ({ children }) => {
 
     // Get initial session
     const initializeAuth = async () => {
+      if (!supabaseConfigured || !supabase) {
+        console.error('Supabase not configured - redirecting to login');
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -55,6 +63,9 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
 
     // Listen for auth changes
+    if (!supabase) {
+      return () => { mounted = false; };
+    }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event);
@@ -89,6 +100,7 @@ export const AuthProvider = ({ children }) => {
   }, [fetchProfile]);
 
   const signUp = async (email, password, name, role = ROLES.EMPLOYEE) => {
+    if (!supabase) throw new Error('Supabase non configuré');
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -99,12 +111,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signIn = async (email, password) => {
+    if (!supabase) throw new Error('Supabase non configuré');
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return data;
   };
 
   const signInWithGoogle = async () => {
+    if (!supabase) throw new Error('Supabase non configuré');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/dashboard` }
@@ -114,7 +128,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
   };

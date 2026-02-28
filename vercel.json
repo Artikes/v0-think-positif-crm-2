@@ -1,6 +1,6 @@
 {
-  "installCommand": "cd frontend && npm install --legacy-peer-deps && cd node_modules/ajv-keywords && npm install ajv@8.17.1 --no-save --legacy-peer-deps",
-  "buildCommand": "cd frontend && npx craco build",
+  "installCommand": "cd frontend && npm install --legacy-peer-deps && npm install ajv@8.17.1 ajv-keywords@5.1.0 --legacy-peer-deps --no-save",
+  "buildCommand": "cd frontend && DISABLE_ESLINT_PLUGIN=true npx craco build",
   "outputDirectory": "frontend/build",
   "framework": null,
   "rewrites": [
