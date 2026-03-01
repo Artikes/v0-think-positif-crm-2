@@ -9,16 +9,21 @@ if (!supabaseConfigured) {
   console.error('Missing Supabase environment variables. Auth will not work.');
 }
 
-export const supabase = supabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storageKey: 'think-positif-crm-auth',
-      }
-    })
-  : null;
+// Always create the client (even with empty strings) so imports never get null.
+// Supabase client with empty URL will simply fail API calls gracefully.
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      // Do NOT set a custom storageKey - use Supabase's default so existing
+      // sessions from the original Emergent AI deployment are preserved on refresh.
+    }
+  }
+);
 
 export const ROLES = {
   ADMIN: 'admin',

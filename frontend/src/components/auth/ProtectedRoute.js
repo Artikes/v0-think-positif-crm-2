@@ -7,8 +7,6 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, profile, loading, isAdmin } = useAuth();
   const location = useLocation();
 
-  console.log('ProtectedRoute:', { loading, user: !!user, profile: !!profile });
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
