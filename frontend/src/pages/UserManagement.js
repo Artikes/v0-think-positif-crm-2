@@ -119,9 +119,18 @@ const UserManagement = () => {
       return;
     }
 
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur?')) return;
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur? Ses tâches et événements seront désassignés.')) return;
 
     try {
+      // Nullify all foreign key references to this profile first
+      await Promise.all([
+        supabase.from('tasks').update({ assigned_to: null }).eq('assigned_to', id),
+        supabase.from('tasks').update({ created_by: null }).eq('created_by', id),
+        supabase.from('schedules').update({ user_id: null }).eq('user_id', id),
+        supabase.from('clients').update({ assigned_to: null }).eq('assigned_to', id),
+      ]);
+
+      // Delete the profile row
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -132,7 +141,7 @@ const UserManagement = () => {
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast.error('Erreur lors de la suppression');
+      toast.error(error?.message || 'Erreur lors de la suppression');
     }
   };
 
