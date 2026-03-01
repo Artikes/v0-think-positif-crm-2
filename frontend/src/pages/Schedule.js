@@ -381,8 +381,88 @@ const Schedule = () => {
           ))}
         </div>
 
-        {/* Week View */}
-        <div className="grid grid-cols-7 gap-2">
+        {/* Week View - Desktop: 7-column grid, Mobile: stacked list */}
+        {/* Mobile view */}
+        <div className="block md:hidden space-y-3">
+          {weekDays.map((day, index) => {
+            const dayEvents = getEventsForDay(day);
+            const today = isToday(day);
+            
+            return (
+              <Card 
+                key={index} 
+                className={today ? 'ring-2 ring-primary' : ''}
+                data-testid={`schedule-day-${index}`}
+              >
+                <CardHeader className="p-3 pb-2">
+                  <div 
+                    className={`flex items-center justify-between cursor-pointer hover:bg-muted rounded-lg p-2 transition-colors ${today ? 'bg-primary text-primary-foreground rounded-lg' : ''}`}
+                    onClick={() => openAddDialog(day)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <p className="text-2xl font-bold">{day.getDate()}</p>
+                      <div>
+                        <p className="text-sm font-medium capitalize">
+                          {day.toLocaleDateString('fr-FR', { weekday: 'long' })}
+                        </p>
+                        <p className="text-xs opacity-70">
+                          {day.toLocaleDateString('fr-FR', { month: 'long' })}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={today ? 'secondary' : 'outline'} className="text-xs">
+                      {dayEvents.length} evt
+                    </Badge>
+                  </div>
+                </CardHeader>
+                {dayEvents.length > 0 && (
+                  <CardContent className="p-3 pt-0">
+                    <div className="space-y-2">
+                      {dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="p-3 rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: `${event.color}20`, borderLeft: `3px solid ${event.color}` }}
+                          onClick={() => openEditDialog(event)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-sm" style={{ color: event.color }}>
+                              {event.title}
+                            </div>
+                            <Badge variant="outline" className="text-xs ml-2 flex-shrink-0">
+                              {EVENT_TYPES[event.event_type]?.label || event.event_type}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(event.start_time)} - {formatTime(event.end_time)}
+                            </span>
+                            {event.user && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {event.user.name}
+                              </span>
+                            )}
+                            {event.location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {event.location}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Desktop view */}
+        <div className="hidden md:grid grid-cols-7 gap-2">
           {weekDays.map((day, index) => {
             const dayEvents = getEventsForDay(day);
             const today = isToday(day);
@@ -391,7 +471,7 @@ const Schedule = () => {
               <Card 
                 key={index} 
                 className={`min-h-[300px] ${today ? 'ring-2 ring-primary' : ''}`}
-                data-testid={`schedule-day-${index}`}
+                data-testid={`schedule-day-desktop-${index}`}
               >
                 <CardHeader className="p-3 pb-2">
                   <div 

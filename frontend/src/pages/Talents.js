@@ -41,7 +41,10 @@ import {
   Calendar,
   User,
   Target,
-  Lightbulb
+  Lightbulb,
+  Upload,
+  FileText,
+  Download
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -71,6 +74,9 @@ const Talents = () => {
     expertise: [],
     assigned_to: ''
   });
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [documents, setDocuments] = useState([]);
 
   useEffect(() => {
     fetchTalents();
@@ -93,8 +99,60 @@ const Talents = () => {
     }
   };
 
+  const uploadFilesForEntity = async (entityId, entityType) => {
+    if (pendingFiles.length === 0) return;
+    for (const file of pendingFiles) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `${entityType}/${entityId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        continue;
+      }
+
+      await supabase.from('documents').insert([{
+        entity_type: entityType,
+        entity_id: entityId,
+        file_name: file.name,
+        file_path: filePath,
+        file_type: file.type,
+        file_size: file.size
+      }]);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    setPendingFiles(prev => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  const removePendingFile = (index) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const fetchTalentDocuments = async (talentId) => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('entity_type', 'talent')
+        .eq('entity_id', talentId);
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setUploading(true);
     try {
       const payload = {
         first_name: formData.first_name,
@@ -109,27 +167,38 @@ const Talents = () => {
         assigned_to: formData.assigned_to || null
       };
 
+      let talentId = selectedTalent?.id;
+
       if (selectedTalent) {
         const { error } = await supabase
           .from('talents')
           .update({ ...payload, updated_at: new Date().toISOString() })
           .eq('id', selectedTalent.id);
         if (error) throw error;
-        toast.success('Talent mis à jour');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('talents')
-          .insert([payload]);
+          .insert([payload])
+          .select()
+          .single();
         if (error) throw error;
-        toast.success('Talent ajouté');
+        talentId = data.id;
       }
 
+      // Upload pending files
+      if (talentId && pendingFiles.length > 0) {
+        await uploadFilesForEntity(talentId, 'talent');
+      }
+
+      toast.success(selectedTalent ? 'Talent mis à jour' : 'Talent ajouté');
       setShowAddDialog(false);
       resetForm();
       fetchTalents();
     } catch (error) {
       console.error('Error saving talent:', error);
       toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -171,13 +240,15 @@ const Talents = () => {
     setShowAddDialog(true);
   };
 
-  const openDetailDialog = (talent) => {
+  const openDetailDialog = async (talent) => {
     setSelectedTalent(talent);
+    await fetchTalentDocuments(talent.id);
     setShowDetailDialog(true);
   };
 
   const resetForm = () => {
     setSelectedTalent(null);
+    setPendingFiles([]);
     setFormData({
       first_name: '',
       last_name: '',
@@ -309,8 +380,45 @@ const Talents = () => {
                   <Textarea id="aspirations" value={formData.aspirations} onChange={(e) => setFormData({ ...formData, aspirations: e.target.value })} rows={3} />
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Documents</Label>
+                  <div className="border rounded-lg p-3 space-y-3">
+                    <label htmlFor="talent-file-upload" className="flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Cliquez pour ajouter des fichiers</span>
+                      <input
+                        id="talent-file-upload"
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                    </label>
+                    {pendingFiles.length > 0 && (
+                      <div className="space-y-2">
+                        {pendingFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate">{file.name}</span>
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                {(file.size / 1024).toFixed(0)} KB
+                              </span>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removePendingFile(index)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <DialogFooter>
-                  <Button type="submit">{selectedTalent ? 'Mettre à jour' : 'Ajouter'}</Button>
+                  <Button type="submit" disabled={uploading}>
+                    {uploading ? 'Enregistrement...' : (selectedTalent ? 'Mettre à jour' : 'Ajouter')}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -506,6 +614,25 @@ const Talents = () => {
                       <p className="text-sm bg-muted/50 p-3 rounded-lg">{selectedTalent.aspirations}</p>
                     </div>
                   )}
+
+                  <div>
+                    <p className="text-sm font-medium flex items-center gap-2 mb-3"><FileText className="h-4 w-4" /> Documents</p>
+                    {documents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Aucun document</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {documents.map(doc => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate">{doc.file_name}</span>
+                            </div>
+                            <Button variant="ghost" size="icon"><Download className="h-4 w-4" /></Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </ScrollArea>
             )}

@@ -79,6 +79,8 @@ const Trainers = () => {
     comments: ''
   });
   const [documents, setDocuments] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchTrainers();
@@ -116,13 +118,53 @@ const Trainers = () => {
     }
   };
 
+  const uploadFilesForEntity = async (entityId, entityType) => {
+    if (pendingFiles.length === 0) return;
+    for (const file of pendingFiles) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `${entityType}/${entityId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        continue;
+      }
+
+      await supabase.from('documents').insert([{
+        entity_type: entityType,
+        entity_id: entityId,
+        file_name: file.name,
+        file_path: filePath,
+        file_type: file.type,
+        file_size: file.size
+      }]);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    setPendingFiles(prev => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  const removePendingFile = (index) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setUploading(true);
     try {
       const payload = {
         ...formData,
         expertise: formData.expertise
       };
+
+      let trainerId = selectedTrainer?.id;
 
       if (selectedTrainer) {
         const { error } = await supabase
@@ -134,22 +176,31 @@ const Trainers = () => {
           .eq('id', selectedTrainer.id);
 
         if (error) throw error;
-        toast.success('Formateur mis à jour');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('trainers')
-          .insert([payload]);
+          .insert([payload])
+          .select()
+          .single();
 
         if (error) throw error;
-        toast.success('Formateur ajouté');
+        trainerId = data.id;
       }
 
+      // Upload pending files
+      if (trainerId && pendingFiles.length > 0) {
+        await uploadFilesForEntity(trainerId, 'trainer');
+      }
+
+      toast.success(selectedTrainer ? 'Formateur mis à jour' : 'Formateur ajouté');
       setShowAddDialog(false);
       resetForm();
       fetchTrainers();
     } catch (error) {
       console.error('Error saving trainer:', error);
       toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -202,6 +253,7 @@ const Trainers = () => {
 
   const resetForm = () => {
     setSelectedTrainer(null);
+    setPendingFiles([]);
     setFormData({
       first_name: '',
       last_name: '',
@@ -318,8 +370,45 @@ const Trainers = () => {
                   <Textarea id="comments" value={formData.comments} onChange={(e) => setFormData({ ...formData, comments: e.target.value })} rows={3} />
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Documents</Label>
+                  <div className="border rounded-lg p-3 space-y-3">
+                    <label htmlFor="trainer-file-upload" className="flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Cliquez pour ajouter des fichiers</span>
+                      <input
+                        id="trainer-file-upload"
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                    </label>
+                    {pendingFiles.length > 0 && (
+                      <div className="space-y-2">
+                        {pendingFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate">{file.name}</span>
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
+                                {(file.size / 1024).toFixed(0)} KB
+                              </span>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removePendingFile(index)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <DialogFooter>
-                  <Button type="submit">{selectedTrainer ? 'Mettre à jour' : 'Ajouter'}</Button>
+                  <Button type="submit" disabled={uploading}>
+                    {uploading ? 'Enregistrement...' : (selectedTrainer ? 'Mettre à jour' : 'Ajouter')}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
