@@ -66,8 +66,8 @@ const Dashboard = () => {
         supabase.from('tasks').select('id', { count: 'exact' }).neq('status', 'done')
       ]);
 
-      const totalRevenue = clientsRes.data?.reduce((sum, c) => sum + (c.revenue || 0), 0) || 0;
-      const totalCost = clientsRes.data?.reduce((sum, c) => sum + (c.cost || 0), 0) || 0;
+      const totalRevenue = clientsRes.data?.reduce((sum, c) => sum + (parseFloat(c.revenue) || 0), 0) || 0;
+      const totalCost = clientsRes.data?.reduce((sum, c) => sum + (parseFloat(c.cost) || 0), 0) || 0;
 
       setStats({
         clients: clientsRes.count || 0,
@@ -83,9 +83,9 @@ const Dashboard = () => {
       const projects = (clientsRes.data || []).map(c => ({
         name: c.project_name || c.company_name || 'Sans nom',
         company: c.company_name,
-        revenue: c.revenue || 0,
-        cost: c.cost || 0,
-        profit: (c.revenue || 0) - (c.cost || 0)
+        revenue: parseFloat(c.revenue) || 0,
+        cost: parseFloat(c.cost) || 0,
+        profit: (parseFloat(c.revenue) || 0) - (parseFloat(c.cost) || 0)
       })).filter(p => p.revenue > 0 || p.cost > 0);
       setProjectFinancials(projects);
 
