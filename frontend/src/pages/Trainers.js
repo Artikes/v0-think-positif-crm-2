@@ -177,11 +177,18 @@ const Trainers = () => {
     setUploading(true);
     try {
       const payload = {
-        ...formData,
-        expertise: formData.expertise
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        diploma_level: formData.diploma_level,
+        expertise: formData.expertise || [],
+        schools: formData.schools || null,
+        comments: formData.comments || null,
       };
 
       let trainerId = selectedTrainer?.id;
+      console.log('[v0] Trainer payload:', JSON.stringify(payload));
 
       if (selectedTrainer) {
         const { error } = await supabase
@@ -194,14 +201,15 @@ const Trainers = () => {
 
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
+        const { data: insertedData, error: insertError } = await supabase
           .from('trainers')
           .insert([payload])
           .select()
           .single();
 
-        if (error) throw error;
-        trainerId = data.id;
+        console.log('[v0] Trainer insert result:', { insertedData, insertError: insertError?.message });
+        if (insertError) throw insertError;
+        trainerId = insertedData.id;
       }
 
       // Upload pending files
@@ -214,8 +222,8 @@ const Trainers = () => {
       resetForm();
       fetchTrainers();
     } catch (error) {
-      console.error('Error saving trainer:', error);
-      toast.error('Erreur lors de la sauvegarde');
+      console.error('[v0] Error saving trainer:', error, JSON.stringify(error));
+      toast.error(error?.message || 'Erreur lors de la sauvegarde');
     } finally {
       setUploading(false);
     }

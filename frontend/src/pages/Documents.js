@@ -28,6 +28,16 @@ import {
   SelectValue,
 } from '../components/ui/select';
 
+const DOCUMENT_CATEGORIES = {
+  cv: 'CV',
+  identity: "Carte d'identit\u00e9",
+  diploma: 'Dipl\u00f4me',
+  certificate: 'Certificat',
+  contract: 'Contrat',
+  recommendation: 'Recommandation',
+  other: 'Autre',
+};
+
 const Documents = () => {
   const { isAdmin } = useAuth();
   const [documents, setDocuments] = useState([]);
@@ -35,6 +45,7 @@ const Documents = () => {
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   useEffect(() => {
     fetchDocuments();
@@ -86,7 +97,8 @@ const Documents = () => {
           file_name: file.name,
           file_path: filePath,
           file_type: file.type,
-          file_size: file.size
+          file_size: file.size,
+          document_category: 'other'
         }]);
 
       if (dbError) throw dbError;
@@ -207,7 +219,8 @@ const Documents = () => {
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = doc.file_name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'all' || doc.entity_type === typeFilter;
-    return matchesSearch && matchesType;
+    const matchesCategory = categoryFilter === 'all' || doc.document_category === categoryFilter;
+    return matchesSearch && matchesType && matchesCategory;
   });
 
   return (
@@ -262,14 +275,25 @@ const Documents = () => {
               </div>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]" data-testid="document-type-filter">
-                  <SelectValue placeholder="Type" />
+                  <SelectValue placeholder="Source" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
+                  <SelectItem value="all">Toutes les sources</SelectItem>
                   <SelectItem value="general">Général</SelectItem>
                   <SelectItem value="trainer">Formateurs</SelectItem>
                   <SelectItem value="talent">Talents</SelectItem>
                   <SelectItem value="client">Clients</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-[160px]" data-testid="document-category-filter">
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes catégories</SelectItem>
+                  {Object.entries(DOCUMENT_CATEGORIES).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -315,15 +339,18 @@ const Documents = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {getEntityLabel(doc.entity_type)}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {getEntityLabel(doc.entity_type)}
+                      </Badge>
+                      {doc.document_category && doc.document_category !== 'other' && (
+                        <Badge variant="outline" className="text-xs">
+                          {DOCUMENT_CATEGORIES[doc.document_category] || doc.document_category}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(doc.created_at)}
-                        </span>
-                      </div>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(doc.created_at)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 mt-4">
                       <Button 

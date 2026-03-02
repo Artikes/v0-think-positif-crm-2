@@ -170,7 +170,7 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(parseFloat(value) || 0);
   };
 
   const formatDate = (date) => {

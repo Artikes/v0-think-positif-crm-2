@@ -211,8 +211,8 @@ const Clients = () => {
       email: client.email || '',
       phone: client.phone || '',
       status: client.status || 'prospect',
-      revenue: client.revenue || 0,
-      cost: client.cost || 0,
+      revenue: parseFloat(client.revenue) || 0,
+      cost: parseFloat(client.cost) || 0,
       project_name: client.project_name || '',
       notes: client.notes || ''
     });
@@ -250,7 +250,7 @@ const Clients = () => {
   });
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value || 0);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(parseFloat(value) || 0);
   };
 
   const formatDate = (date) => {
@@ -606,7 +606,7 @@ const Clients = () => {
                       </div>
                       <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
                         <p className="text-xs text-blue-700 dark:text-blue-400 mb-1">Marge</p>
-                        <p className="text-sm font-bold text-blue-800 dark:text-blue-300">{formatCurrency((selectedClient.revenue || 0) - (selectedClient.cost || 0))}</p>
+                        <p className="text-sm font-bold text-blue-800 dark:text-blue-300">{formatCurrency((parseFloat(selectedClient.revenue) || 0) - (parseFloat(selectedClient.cost) || 0))}</p>
                       </div>
                     </div>
                   )}
