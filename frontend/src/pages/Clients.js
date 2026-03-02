@@ -610,7 +610,6 @@ const Clients = () => {
                       </div>
                     </div>
                   )}
-                  </div>
 
                   {selectedClient.notes && (
                     <div className="mb-6">
