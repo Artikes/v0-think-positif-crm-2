@@ -51,6 +51,16 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 
+const DOCUMENT_CATEGORIES = [
+  { value: 'cv', label: 'CV' },
+  { value: 'identity', label: "Carte d'identit\u00e9" },
+  { value: 'diploma', label: 'Dipl\u00f4me' },
+  { value: 'certificate', label: 'Certificat' },
+  { value: 'contract', label: 'Contrat' },
+  { value: 'recommendation', label: 'Lettre de recommandation' },
+  { value: 'other', label: 'Autre' },
+];
+
 const DIPLOMA_LEVELS = [
   { value: 'bac', label: 'Baccalauréat' },
   { value: 'bac+2', label: 'Bac+2 (BTS, DUT)' },
@@ -120,7 +130,8 @@ const Trainers = () => {
 
   const uploadFilesForEntity = async (entityId, entityType) => {
     if (pendingFiles.length === 0) return;
-    for (const file of pendingFiles) {
+    for (const pf of pendingFiles) {
+      const file = pf.file;
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
       const filePath = `${entityType}/${entityId}/${fileName}`;
@@ -140,19 +151,25 @@ const Trainers = () => {
         file_name: file.name,
         file_path: filePath,
         file_type: file.type,
-        file_size: file.size
+        file_size: file.size,
+        document_category: pf.category
       }]);
     }
   };
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
-    setPendingFiles(prev => [...prev, ...files]);
+    const newFiles = files.map(f => ({ file: f, category: 'other' }));
+    setPendingFiles(prev => [...prev, ...newFiles]);
     e.target.value = '';
   };
 
   const removePendingFile = (index) => {
     setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateFileCategory = (index, category) => {
+    setPendingFiles(prev => prev.map((pf, i) => i === index ? { ...pf, category } : pf));
   };
 
   const handleSubmit = async (e) => {
@@ -386,15 +403,20 @@ const Trainers = () => {
                     </label>
                     {pendingFiles.length > 0 && (
                       <div className="space-y-2">
-                        {pendingFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span className="text-sm truncate">{file.name}</span>
-                              <span className="text-xs text-muted-foreground flex-shrink-0">
-                                {(file.size / 1024).toFixed(0)} KB
-                              </span>
-                            </div>
+                        {pendingFiles.map((pf, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm truncate flex-1 min-w-0">{pf.file.name}</span>
+                            <Select value={pf.category} onValueChange={(v) => updateFileCategory(index, v)}>
+                              <SelectTrigger className="h-7 w-[130px] text-xs flex-shrink-0">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DOCUMENT_CATEGORIES.map(cat => (
+                                  <SelectItem key={cat.value} value={cat.value} className="text-xs">{cat.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <Button type="button" variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => removePendingFile(index)}>
                               <Trash2 className="h-3 w-3" />
                             </Button>

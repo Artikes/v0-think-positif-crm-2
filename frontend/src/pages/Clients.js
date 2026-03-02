@@ -49,7 +49,10 @@ import {
   Eye,
   X,
   MessageSquare,
-  Clock
+  Clock,
+  TrendingDown,
+  TrendingUp,
+  Briefcase
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -81,6 +84,8 @@ const Clients = () => {
     phone: '',
     status: 'prospect',
     revenue: 0,
+    cost: 0,
+    project_name: '',
     notes: ''
   });
   const [activities, setActivities] = useState([]);
@@ -207,6 +212,8 @@ const Clients = () => {
       phone: client.phone || '',
       status: client.status || 'prospect',
       revenue: client.revenue || 0,
+      cost: client.cost || 0,
+      project_name: client.project_name || '',
       notes: client.notes || ''
     });
     setShowAddDialog(true);
@@ -227,6 +234,8 @@ const Clients = () => {
       phone: '',
       status: 'prospect',
       revenue: 0,
+      cost: 0,
+      project_name: '',
       notes: ''
     });
   };
@@ -341,17 +350,39 @@ const Clients = () => {
                       data-testid="client-phone-input"
                     />
                   </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label htmlFor="project_name">Nom du projet</Label>
+                    <Input
+                      id="project_name"
+                      value={formData.project_name}
+                      onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                      placeholder="Ex: Formation digitale Q1"
+                      data-testid="client-project-input"
+                    />
+                  </div>
                   {isAdmin() && (
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="revenue">Chiffre d'affaires (€)</Label>
-                      <Input
-                        id="revenue"
-                        type="number"
-                        value={formData.revenue}
-                        onChange={(e) => setFormData({ ...formData, revenue: parseFloat(e.target.value) || 0 })}
-                        data-testid="client-revenue-input"
-                      />
-                    </div>
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="revenue">Chiffre d'affaires (€)</Label>
+                        <Input
+                          id="revenue"
+                          type="number"
+                          value={formData.revenue}
+                          onChange={(e) => setFormData({ ...formData, revenue: parseFloat(e.target.value) || 0 })}
+                          data-testid="client-revenue-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cost">Coût (€)</Label>
+                        <Input
+                          id="cost"
+                          type="number"
+                          value={formData.cost}
+                          onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
+                          data-testid="client-cost-input"
+                        />
+                      </div>
+                    </>
                   )}
                   <div className="col-span-2 space-y-2">
                     <Label htmlFor="notes">Notes</Label>
@@ -468,14 +499,27 @@ const Clients = () => {
                     )}
                   </div>
 
+                  {client.project_name && (
+                    <div className="flex items-center gap-2 text-sm mb-2">
+                      <Briefcase className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="truncate font-medium">{client.project_name}</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between pt-3 border-t">
                     <Badge className={CLIENT_STATUS[client.status]?.color || ''}>
                       {CLIENT_STATUS[client.status]?.label || client.status}
                     </Badge>
                     {isAdmin() && (
-                      <div className="flex items-center gap-1 text-sm font-semibold">
-                        <Euro className="h-4 w-4 text-muted-foreground" />
-                        {formatCurrency(client.revenue)}
+                      <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex items-center gap-1 text-xs">
+                          <TrendingUp className="h-3 w-3 text-green-600" />
+                          <span className="text-green-700 dark:text-green-400 font-medium">{formatCurrency(client.revenue)}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs">
+                          <TrendingDown className="h-3 w-3 text-red-500" />
+                          <span className="text-red-600 dark:text-red-400 font-medium">{formatCurrency(client.cost)}</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -531,12 +575,12 @@ const Clients = () => {
                       </p>
                       <p className="text-sm">{selectedClient.phone || '-'}</p>
                     </div>
-                    {isAdmin() && (
+                    {selectedClient.project_name && (
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Euro className="h-3 w-3" /> Chiffre d'affaires
+                          <Briefcase className="h-3 w-3" /> Projet
                         </p>
-                        <p className="text-sm font-semibold">{formatCurrency(selectedClient.revenue)}</p>
+                        <p className="text-sm font-medium">{selectedClient.project_name}</p>
                       </div>
                     )}
                     <div className="space-y-1">
@@ -545,6 +589,27 @@ const Clients = () => {
                       </p>
                       <p className="text-sm">{formatDate(selectedClient.created_at)}</p>
                     </div>
+                  </div>
+                  {isAdmin() && (
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
+                        <p className="text-xs text-green-700 dark:text-green-400 flex items-center gap-1 mb-1">
+                          <TrendingUp className="h-3 w-3" /> CA
+                        </p>
+                        <p className="text-sm font-bold text-green-800 dark:text-green-300">{formatCurrency(selectedClient.revenue)}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
+                        <p className="text-xs text-red-700 dark:text-red-400 flex items-center gap-1 mb-1">
+                          <TrendingDown className="h-3 w-3" /> Coût
+                        </p>
+                        <p className="text-sm font-bold text-red-800 dark:text-red-300">{formatCurrency(selectedClient.cost)}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
+                        <p className="text-xs text-blue-700 dark:text-blue-400 mb-1">Marge</p>
+                        <p className="text-sm font-bold text-blue-800 dark:text-blue-300">{formatCurrency((selectedClient.revenue || 0) - (selectedClient.cost || 0))}</p>
+                      </div>
+                    </div>
+                  )}
                   </div>
 
                   {selectedClient.notes && (

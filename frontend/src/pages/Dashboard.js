@@ -13,6 +13,7 @@ import {
   Star,
   Building2,
   TrendingUp,
+  TrendingDown,
   AlertCircle,
   Clock,
   ArrowRight,
@@ -21,7 +22,15 @@ import {
   CheckSquare,
   Calendar
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -32,8 +41,11 @@ const Dashboard = () => {
     trainers: 0,
     talents: 0,
     tasks: 0,
-    revenue: 0
+    revenue: 0,
+    cost: 0,
+    profit: 0
   });
+  const [projectFinancials, setProjectFinancials] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -48,21 +60,34 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const [clientsRes, trainersRes, talentsRes, tasksRes] = await Promise.all([
-        supabase.from('clients').select('id, revenue, created_at', { count: 'exact' }),
+        supabase.from('clients').select('id, revenue, cost, project_name, company_name, created_at', { count: 'exact' }),
         supabase.from('trainers').select('id', { count: 'exact' }),
         supabase.from('talents').select('id, status, created_at', { count: 'exact' }),
         supabase.from('tasks').select('id', { count: 'exact' }).neq('status', 'done')
       ]);
 
       const totalRevenue = clientsRes.data?.reduce((sum, c) => sum + (c.revenue || 0), 0) || 0;
+      const totalCost = clientsRes.data?.reduce((sum, c) => sum + (c.cost || 0), 0) || 0;
 
       setStats({
         clients: clientsRes.count || 0,
         trainers: trainersRes.count || 0,
         talents: talentsRes.count || 0,
         tasks: tasksRes.count || 0,
-        revenue: totalRevenue
+        revenue: totalRevenue,
+        cost: totalCost,
+        profit: totalRevenue - totalCost
       });
+
+      // Build per-project financials
+      const projects = (clientsRes.data || []).map(c => ({
+        name: c.project_name || c.company_name || 'Sans nom',
+        company: c.company_name,
+        revenue: c.revenue || 0,
+        cost: c.cost || 0,
+        profit: (c.revenue || 0) - (c.cost || 0)
+      })).filter(p => p.revenue > 0 || p.cost > 0);
+      setProjectFinancials(projects);
 
       // Calculate talent distribution from real data
       const talents = talentsRes.data || [];
@@ -182,7 +207,7 @@ const Dashboard = () => {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/clients')} data-testid="kpi-clients">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -224,15 +249,35 @@ const Dashboard = () => {
           </Card>
 
           {isAdmin() && (
-            <Card className="hover:shadow-md transition-shadow" data-testid="kpi-revenue">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <Euro className="h-8 w-8 text-emerald-500 p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg" />
-                  <span className="text-xl font-bold">{formatCurrency(stats.revenue)}</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">Chiffre d'affaires</p>
-              </CardContent>
-            </Card>
+            <>
+              <Card className="hover:shadow-md transition-shadow" data-testid="kpi-revenue">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <TrendingUp className="h-8 w-8 text-emerald-500 p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg" />
+                    <span className="text-xl font-bold">{formatCurrency(stats.revenue)}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">Chiffre d'affaires</p>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-md transition-shadow" data-testid="kpi-cost">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <TrendingDown className="h-8 w-8 text-red-500 p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg" />
+                    <span className="text-xl font-bold">{formatCurrency(stats.cost)}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">Coûts totaux</p>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-md transition-shadow" data-testid="kpi-profit">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <Euro className="h-8 w-8 text-blue-500 p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg" />
+                    <span className={`text-xl font-bold ${stats.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(stats.profit)}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">Marge nette</p>
+                </CardContent>
+              </Card>
+            </>
           )}
         </div>
 
@@ -396,6 +441,103 @@ const Dashboard = () => {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Financial Overview - Admin Only */}
+        {isAdmin() && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CA vs Cost Bar Chart */}
+            <Card data-testid="chart-revenue-cost">
+              <CardHeader>
+                <CardTitle className="text-lg">CA vs Coûts</CardTitle>
+                <CardDescription>Chiffre d'affaires et coûts par projet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {projectFinancials.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Euro className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">Aucune donnée financière</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={projectFinancials} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis type="number" className="text-xs" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                      <YAxis dataKey="name" type="category" className="text-xs" width={100} tick={{ fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                        formatter={(value) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value)}
+                      />
+                      <Legend />
+                      <Bar dataKey="revenue" fill="#22c55e" name="CA" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="cost" fill="#ef4444" name="Coût" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Per-Project Financial Table */}
+            <Card data-testid="table-project-financials">
+              <CardHeader>
+                <CardTitle className="text-lg">Détail par projet</CardTitle>
+                <CardDescription>Revenus, coûts et marges par client/projet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {projectFinancials.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Building2 className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">Aucun projet avec des données financières</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Projet</TableHead>
+                          <TableHead className="text-xs text-right">CA</TableHead>
+                          <TableHead className="text-xs text-right">Coût</TableHead>
+                          <TableHead className="text-xs text-right">Marge</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {projectFinancials.map((project, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-xs font-medium max-w-[140px] truncate">{project.name}</TableCell>
+                            <TableCell className="text-xs text-right text-green-700 dark:text-green-400 font-medium">
+                              {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(project.revenue)}
+                            </TableCell>
+                            <TableCell className="text-xs text-right text-red-600 dark:text-red-400 font-medium">
+                              {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(project.cost)}
+                            </TableCell>
+                            <TableCell className={`text-xs text-right font-bold ${project.profit >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400'}`}>
+                              {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(project.profit)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="border-t-2 font-bold">
+                          <TableCell className="text-xs">Total</TableCell>
+                          <TableCell className="text-xs text-right text-green-700 dark:text-green-400">
+                            {formatCurrency(stats.revenue)}
+                          </TableCell>
+                          <TableCell className="text-xs text-right text-red-600 dark:text-red-400">
+                            {formatCurrency(stats.cost)}
+                          </TableCell>
+                          <TableCell className={`text-xs text-right ${stats.profit >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400'}`}>
+                            {formatCurrency(stats.profit)}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
