@@ -6,12 +6,11 @@ require("dotenv").config();
 // Map Vercel Supabase integration env vars (NEXT_PUBLIC_*) to REACT_APP_* 
 // BEFORE CRA's webpack config reads them. This ensures CRA's built-in
 // DefinePlugin picks them up as REACT_APP_* variables.
-// ALWAYS prefer NEXT_PUBLIC_* (v0/Vercel integration) over any old REACT_APP_* values
-// to ensure the app connects to the correct Supabase instance.
-if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+// Only copy if REACT_APP_* is not already set (preserves existing Supabase connection).
+if (process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.REACT_APP_SUPABASE_URL) {
   process.env.REACT_APP_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 }
-if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && !process.env.REACT_APP_SUPABASE_ANON_KEY) {
   process.env.REACT_APP_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 }
 
