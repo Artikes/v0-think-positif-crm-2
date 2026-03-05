@@ -188,7 +188,6 @@ const Trainers = () => {
       };
 
       let trainerId = selectedTrainer?.id;
-      console.log('[v0] Trainer payload:', JSON.stringify(payload));
 
       if (selectedTrainer) {
         const { error } = await supabase
@@ -207,7 +206,6 @@ const Trainers = () => {
           .select()
           .single();
 
-        console.log('[v0] Trainer insert result:', { insertedData, insertError: insertError?.message });
         if (insertError) throw insertError;
         trainerId = insertedData.id;
       }
@@ -222,7 +220,7 @@ const Trainers = () => {
       resetForm();
       fetchTrainers();
     } catch (error) {
-      console.error('[v0] Error saving trainer:', error, JSON.stringify(error));
+      console.error('Error saving trainer:', error);
       toast.error(error?.message || 'Erreur lors de la sauvegarde');
     } finally {
       setUploading(false);
