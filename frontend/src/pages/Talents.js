@@ -193,11 +193,13 @@ const Talents = () => {
           .eq('id', selectedTalent.id);
         if (error) throw error;
       } else {
+        console.log('[v0] Talent insert payload:', JSON.stringify(payload));
         const { data, error } = await supabase
           .from('talents')
           .insert([payload])
           .select()
           .single();
+        console.log('[v0] Talent insert error:', error);
         if (error) throw error;
         talentId = data.id;
       }

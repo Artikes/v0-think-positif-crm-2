@@ -139,7 +139,7 @@ const Schedule = () => {
         event_type: formData.event_type,
         location: formData.location || null,
         color: EVENT_TYPES[formData.event_type]?.color || '#3b82f6',
-        user_id: profile?.id
+        user_id: profile?.id || null
       };
 
       if (selectedEvent) {
@@ -150,9 +150,11 @@ const Schedule = () => {
         if (error) throw error;
         toast.success('Événement mis à jour');
       } else {
+        console.log('[v0] Schedule insert payload:', JSON.stringify(payload));
         const { error } = await supabase
           .from('schedules')
           .insert([payload]);
+        console.log('[v0] Schedule insert error:', error);
         if (error) throw error;
         toast.success('Événement créé');
       }

@@ -145,10 +145,12 @@ const Clients = () => {
         toast.success('Client mis à jour');
       } else {
         // Create new client
+        console.log('[v0] Client insert payload:', JSON.stringify(formData));
         const { error } = await supabase
           .from('clients')
           .insert([formData]);
 
+        console.log('[v0] Client insert error:', error);
         if (error) throw error;
         toast.success('Client ajouté');
       }
