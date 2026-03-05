@@ -201,15 +201,20 @@ const Trainers = () => {
 
         if (error) throw error;
       } else {
-        console.log('[v0] Trainer insert payload:', JSON.stringify(payload));
-        const { data: insertedData, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from('trainers')
-          .insert([payload])
-          .select()
-          .single();
-        console.log('[v0] Trainer insert result:', { data: insertedData, error: insertError });
+          .insert([payload]);
         if (insertError) throw insertError;
-        trainerId = insertedData.id;
+
+        // Fetch the newly created trainer to get its ID
+        const { data: newTrainer, error: fetchError } = await supabase
+          .from('trainers')
+          .select('id')
+          .eq('email', payload.email)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        if (!fetchError && newTrainer) trainerId = newTrainer.id;
       }
 
       // Upload pending files

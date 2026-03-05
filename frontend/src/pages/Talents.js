@@ -194,13 +194,20 @@ const Talents = () => {
           .eq('id', selectedTalent.id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('talents')
-          .insert([payload])
-          .select()
-          .single();
+          .insert([payload]);
         if (error) throw error;
-        talentId = data.id;
+
+        // Fetch the newly created talent to get its ID
+        const { data: newTalent, error: fetchError } = await supabase
+          .from('talents')
+          .select('id')
+          .eq('email', payload.email)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        if (!fetchError && newTalent) talentId = newTalent.id;
       }
 
       // Upload pending files
