@@ -207,79 +207,93 @@ const Dashboard = () => {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/clients')} data-testid="kpi-clients">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <Building2 className="h-8 w-8 text-blue-500 p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg" />
-                <span className="text-2xl font-bold">{stats.clients}</span>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-10 w-10 text-blue-500 p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex-shrink-0" />
+                <div>
+                  <span className="text-2xl font-bold">{stats.clients}</span>
+                  <p className="text-sm text-muted-foreground">Clients</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Clients</p>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/trainers')} data-testid="kpi-trainers">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <GraduationCap className="h-8 w-8 text-green-500 p-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg" />
-                <span className="text-2xl font-bold">{stats.trainers}</span>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3">
+                <GraduationCap className="h-10 w-10 text-green-500 p-2 bg-green-100 dark:bg-green-900/30 rounded-xl flex-shrink-0" />
+                <div>
+                  <span className="text-2xl font-bold">{stats.trainers}</span>
+                  <p className="text-sm text-muted-foreground">Formateurs</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Formateurs</p>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/talents')} data-testid="kpi-talents">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <Star className="h-8 w-8 text-purple-500 p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg" />
-                <span className="text-2xl font-bold">{stats.talents}</span>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3">
+                <Star className="h-10 w-10 text-purple-500 p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex-shrink-0" />
+                <div>
+                  <span className="text-2xl font-bold">{stats.talents}</span>
+                  <p className="text-sm text-muted-foreground">Talents</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Talents</p>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/tasks')} data-testid="kpi-tasks">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <CheckSquare className="h-8 w-8 text-orange-500 p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg" />
-                <span className="text-2xl font-bold">{stats.tasks}</span>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3">
+                <CheckSquare className="h-10 w-10 text-orange-500 p-2 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex-shrink-0" />
+                <div>
+                  <span className="text-2xl font-bold">{stats.tasks}</span>
+                  <p className="text-sm text-muted-foreground">Tâches en cours</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Tâches en cours</p>
             </CardContent>
           </Card>
-
-          {isAdmin() && (
-            <>
-              <Card className="hover:shadow-md transition-shadow" data-testid="kpi-revenue">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <TrendingUp className="h-8 w-8 text-emerald-500 p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg" />
-                    <span className="text-xl font-bold">{formatCurrency(stats.revenue)}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">Chiffre d'affaires</p>
-                </CardContent>
-              </Card>
-              <Card className="hover:shadow-md transition-shadow" data-testid="kpi-cost">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <TrendingDown className="h-8 w-8 text-red-500 p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg" />
-                    <span className="text-xl font-bold">{formatCurrency(stats.cost)}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">Coûts totaux</p>
-                </CardContent>
-              </Card>
-              <Card className="hover:shadow-md transition-shadow" data-testid="kpi-profit">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <Euro className="h-8 w-8 text-blue-500 p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg" />
-                    <span className={`text-xl font-bold ${stats.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(stats.profit)}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">Marge nette</p>
-                </CardContent>
-              </Card>
-            </>
-          )}
         </div>
+
+        {isAdmin() && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="hover:shadow-md transition-shadow" data-testid="kpi-revenue">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-10 w-10 text-emerald-500 p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex-shrink-0" />
+                  <div>
+                    <span className="text-xl font-bold">{formatCurrency(stats.revenue)}</span>
+                    <p className="text-sm text-muted-foreground">Chiffre d'affaires</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="hover:shadow-md transition-shadow" data-testid="kpi-cost">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <TrendingDown className="h-10 w-10 text-red-500 p-2 bg-red-100 dark:bg-red-900/30 rounded-xl flex-shrink-0" />
+                  <div>
+                    <span className="text-xl font-bold">{formatCurrency(stats.cost)}</span>
+                    <p className="text-sm text-muted-foreground">Coûts totaux</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="hover:shadow-md transition-shadow" data-testid="kpi-profit">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <Euro className="h-10 w-10 text-blue-500 p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex-shrink-0" />
+                  <div>
+                    <span className={`text-xl font-bold ${stats.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(stats.profit)}</span>
+                    <p className="text-sm text-muted-foreground">Marge nette</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Tasks & Events Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

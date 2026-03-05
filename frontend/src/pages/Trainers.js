@@ -201,11 +201,13 @@ const Trainers = () => {
 
         if (error) throw error;
       } else {
+        console.log('[v0] Trainer insert payload:', JSON.stringify(payload));
         const { data: insertedData, error: insertError } = await supabase
           .from('trainers')
           .insert([payload])
           .select()
           .single();
+        console.log('[v0] Trainer insert result:', { data: insertedData, error: insertError });
         if (insertError) throw insertError;
         trainerId = insertedData.id;
       }
