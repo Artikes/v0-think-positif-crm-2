@@ -46,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
+import ExportImportButtons from '../components/ExportImportButtons';
 
 const TASK_STATUS = {
   todo: { label: 'À faire', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300', icon: Circle, border: 'border-l-slate-400', bg: 'bg-slate-50/50 dark:bg-slate-900/20', headerColor: 'text-slate-600 dark:text-slate-400', dot: 'bg-slate-400' },
@@ -239,13 +240,22 @@ const Tasks = () => {
             <h1 className="font-heading text-3xl font-bold tracking-tight">Tâches</h1>
             <p className="text-muted-foreground mt-1">Gérez et suivez vos tâches</p>
           </div>
-          <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-task-btn">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvelle tâche
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExportImportButtons
+              data={tasks}
+              tableName="tasks"
+              filename="taches"
+              exportColumns={['title', 'description', 'status', 'priority', 'due_date', 'assigned_to']}
+              importColumns={['title', 'description', 'status', 'priority', 'due_date', 'assigned_to']}
+              onImportComplete={fetchTasks}
+            />
+            <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-task-btn">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvelle tâche
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>{selectedTask ? 'Modifier la tâche' : 'Nouvelle tâche'}</DialogTitle>
@@ -334,10 +344,11 @@ const Tasks = () => {
                   </Button>
                 </DialogFooter>
               </form>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-
+  
         {/* Filters */}
         <Card>
           <CardContent className="p-4">

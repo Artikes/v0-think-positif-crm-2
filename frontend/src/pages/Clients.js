@@ -60,6 +60,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
+import ExportImportButtons from '../components/ExportImportButtons';
 
 const CLIENT_STATUS = {
   active: { label: 'Actif', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
@@ -145,12 +146,9 @@ const Clients = () => {
         toast.success('Client mis à jour');
       } else {
         // Create new client
-        console.log('[v0] Client insert payload:', JSON.stringify(formData));
         const { error } = await supabase
           .from('clients')
           .insert([formData]);
-
-        console.log('[v0] Client insert error:', error);
         if (error) throw error;
         toast.success('Client ajouté');
       }
@@ -277,16 +275,25 @@ const Clients = () => {
             </p>
           </div>
 
-          <Dialog open={showAddDialog} onOpenChange={(open) => {
-            setShowAddDialog(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-client-btn">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouveau client
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExportImportButtons
+              data={clients}
+              tableName="clients"
+              filename="clients"
+              exportColumns={['company_name', 'contact_name', 'email', 'phone', 'status', 'revenue', 'cost', 'project_name', 'notes']}
+              importColumns={['company_name', 'contact_name', 'email', 'phone', 'status', 'revenue', 'cost', 'project_name', 'notes']}
+              onImportComplete={fetchClients}
+            />
+            <Dialog open={showAddDialog} onOpenChange={(open) => {
+              setShowAddDialog(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-client-btn">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouveau client
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>
@@ -403,10 +410,11 @@ const Clients = () => {
                   </Button>
                 </DialogFooter>
               </form>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-
+  
         {/* Filters */}
         <Card>
           <CardContent className="p-4">

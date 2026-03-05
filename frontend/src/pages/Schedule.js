@@ -38,6 +38,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
+import ExportImportButtons from '../components/ExportImportButtons';
 
 const EVENT_TYPES = {
   meeting: { label: 'Réunion', color: '#3b82f6' },
@@ -150,11 +151,9 @@ const Schedule = () => {
         if (error) throw error;
         toast.success('Événement mis à jour');
       } else {
-        console.log('[v0] Schedule insert payload:', JSON.stringify(payload));
         const { error } = await supabase
           .from('schedules')
           .insert([payload]);
-        console.log('[v0] Schedule insert error:', error);
         if (error) throw error;
         toast.success('Événement créé');
       }
@@ -261,13 +260,22 @@ const Schedule = () => {
             <h1 className="font-heading text-3xl font-bold tracking-tight">Planning</h1>
             <p className="text-muted-foreground mt-1">Planning partagé de l'équipe</p>
           </div>
-          <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-event-btn">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvel événement
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExportImportButtons
+              data={events}
+              tableName="schedules"
+              filename="planning"
+              exportColumns={['title', 'description', 'start_time', 'end_time', 'event_type', 'location', 'color']}
+              importColumns={['title', 'description', 'start_time', 'end_time', 'event_type', 'location', 'color']}
+              onImportComplete={fetchEvents}
+            />
+            <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-event-btn">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvel événement
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>{selectedEvent ? 'Modifier l\'événement' : 'Nouvel événement'}</DialogTitle>
@@ -347,8 +355,9 @@ const Schedule = () => {
                   </Button>
                 </DialogFooter>
               </form>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Calendar Navigation */}

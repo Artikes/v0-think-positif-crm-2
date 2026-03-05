@@ -52,6 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
+import ExportImportButtons from '../components/ExportImportButtons';
 
 const DOCUMENT_CATEGORIES = [
   { value: 'cv', label: 'CV' },
@@ -193,13 +194,11 @@ const Talents = () => {
           .eq('id', selectedTalent.id);
         if (error) throw error;
       } else {
-        console.log('[v0] Talent insert payload:', JSON.stringify(payload));
         const { data, error } = await supabase
           .from('talents')
           .insert([payload])
           .select()
           .single();
-        console.log('[v0] Talent insert error:', error);
         if (error) throw error;
         talentId = data.id;
       }
@@ -329,13 +328,22 @@ const Talents = () => {
             <p className="text-muted-foreground mt-1">Gérez vos talents et suivez leur progression</p>
           </div>
 
-          <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-talent-btn">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouveau talent
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ExportImportButtons
+              data={talents}
+              tableName="talents"
+              filename="talents"
+              exportColumns={['first_name', 'last_name', 'email', 'phone', 'birth_date', 'status', 'interests', 'aspirations', 'expertise', 'assigned_to']}
+              importColumns={['first_name', 'last_name', 'email', 'phone', 'birth_date', 'status', 'interests', 'aspirations', 'expertise', 'assigned_to']}
+              onImportComplete={fetchTalents}
+            />
+            <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-talent-btn">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouveau talent
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{selectedTalent ? 'Modifier le talent' : 'Nouveau talent'}</DialogTitle>
@@ -445,8 +453,9 @@ const Talents = () => {
                   </Button>
                 </DialogFooter>
               </form>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Filters */}
@@ -645,15 +654,23 @@ const Talents = () => {
                       <p className="text-sm text-muted-foreground text-center py-4">Aucun document</p>
                     ) : (
                       <div className="space-y-2">
-                        {documents.map(doc => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span className="text-sm truncate">{doc.file_name}</span>
+                        {documents.map(doc => {
+                          const catLabel = DOCUMENT_CATEGORIES.find(c => c.value === doc.document_category)?.label;
+                          return (
+                            <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <span className="text-sm truncate block">{doc.file_name}</span>
+                                  {catLabel && (
+                                    <Badge variant="outline" className="text-xs mt-0.5">{catLabel}</Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="icon"><Download className="h-4 w-4" /></Button>
                             </div>
-                            <Button variant="ghost" size="icon"><Download className="h-4 w-4" /></Button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
