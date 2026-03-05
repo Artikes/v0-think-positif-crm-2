@@ -11,10 +11,18 @@ if (!supabaseConfigured) {
 
 // Always create the client (even with empty strings) so imports never get null.
 // Supabase client with empty URL will simply fail API calls gracefully.
+// Custom fetch that clones the response before returning it.
+// This prevents "body stream already read" errors caused by PostHog's
+// network recorder intercepting and consuming the response body before
+// the Supabase client can parse it.
+const safeFetch = (url, options) =>
+  fetch(url, options).then((res) => res.clone());
+
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder',
   {
+    global: { fetch: safeFetch },
     auth: {
       persistSession: true,
       autoRefreshToken: true,
