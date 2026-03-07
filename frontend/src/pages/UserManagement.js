@@ -40,7 +40,10 @@ import {
   Edit,
   Trash2,
   Shield,
-  User
+  User,
+  CheckCircle,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -55,6 +58,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [approvalFilter, setApprovalFilter] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -143,6 +147,42 @@ const UserManagement = () => {
     }
   };
 
+  const handleApprove = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ approved: true, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (error) throw error;
+      toast.success('Utilisateur validé');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error approving user:', error);
+      toast.error('Erreur lors de la validation');
+    }
+  };
+
+  const handleRevoke = async (userId) => {
+    if (userId === profile?.id) {
+      toast.error('Vous ne pouvez pas révoquer votre propre accès');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ approved: false, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (error) throw error;
+      toast.success('Accès révoqué');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error revoking user:', error);
+      toast.error('Erreur lors de la révocation');
+    }
+  };
+
   const openEditDialog = (user) => {
     setSelectedUser(user);
     setFormData({
@@ -167,8 +207,14 @@ const UserManagement = () => {
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchesApproval = approvalFilter === 'all' || 
+      (approvalFilter === 'approved' && user.approved === true) ||
+      (approvalFilter === 'pending' && user.approved !== true);
+    return matchesSearch && matchesRole && matchesApproval;
   });
+
+  // Count pending approvals
+  const pendingCount = users.filter(u => u.approved !== true).length;
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -235,6 +281,18 @@ const UserManagement = () => {
                   <SelectItem value={ROLES.EMPLOYEE}>Employé</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]" data-testid="user-approval-filter">
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="approved">Validés</SelectItem>
+                  <SelectItem value="pending">
+                    En attente {pendingCount > 0 && `(${pendingCount})`}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -248,20 +306,21 @@ const UserManagement = () => {
                   <TableHead>Nom</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Rôle</TableHead>
+                  <TableHead>Statut</TableHead>
                   <TableHead className="hidden md:table-cell">Créé le</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead className="w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       Chargement...
                     </TableCell>
                   </TableRow>
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
                     </TableCell>
@@ -295,32 +354,66 @@ const UserManagement = () => {
                           )}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        {user.approved ? (
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" /> Validé
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-orange-500 border-orange-500">
+                            <Clock className="h-3 w-3 mr-1" /> En attente
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {formatDate(user.created_at)}
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" data-testid={`user-actions-${user.id}`}>
-                              <MoreVertical className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                          {!user.approved ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                              onClick={() => handleApprove(user.id)}
+                              title="Valider l'accès"
+                            >
+                              <CheckCircle className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Modifier
-                            </DropdownMenuItem>
-                            {user.id !== profile?.id && (
-                              <DropdownMenuItem 
-                                className="text-destructive"
-                                onClick={() => handleDelete(user.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
+                          ) : user.id !== profile?.id && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-orange-500 hover:text-orange-600 hover:bg-orange-100"
+                              onClick={() => handleRevoke(user.id)}
+                              title="Révoquer l'accès"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" data-testid={`user-actions-${user.id}`}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Modifier
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {user.id !== profile?.id && (
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => handleDelete(user.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Supprimer
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

@@ -16,6 +16,7 @@ import Expertise from './pages/Expertise';
 import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import Schedule from './pages/Schedule';
+import PendingApproval from './pages/PendingApproval';
 import './App.css';
 
 function App() {
@@ -27,6 +28,16 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+
+            {/* Pending approval page - protected but skips approval check */}
+            <Route
+              path="/pending-approval"
+              element={
+                <ProtectedRoute skipApprovalCheck>
+                  <PendingApproval />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Protected routes */}
             <Route

@@ -139,6 +139,16 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = () => profile?.role === ROLES.ADMIN;
   const isEmployee = () => profile?.role === ROLES.EMPLOYEE;
+  const isApproved = () => profile?.approved === true;
+
+  const refreshProfile = async () => {
+    if (user) {
+      const data = await fetchProfile(user.id);
+      setProfile(data);
+      return data;
+    }
+    return null;
+  };
 
   return (
     <AuthContext.Provider value={{
@@ -151,12 +161,8 @@ export const AuthProvider = ({ children }) => {
       signOut,
       isAdmin,
       isEmployee,
-      refreshProfile: async () => {
-        if (user) {
-          const data = await fetchProfile(user.id);
-          setProfile(data);
-        }
-      }
+      isApproved,
+      refreshProfile
     }}>
       {children}
     </AuthContext.Provider>

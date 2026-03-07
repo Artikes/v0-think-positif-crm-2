@@ -3,8 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { user, profile, loading, isAdmin } = useAuth();
+const ProtectedRoute = ({ children, adminOnly = false, skipApprovalCheck = false }) => {
+  const { user, profile, loading, isAdmin, isApproved } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -20,6 +20,11 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check if user is approved (skip for the pending-approval page itself)
+  if (!skipApprovalCheck && profile && !isApproved()) {
+    return <Navigate to="/pending-approval" replace />;
   }
 
   if (adminOnly && !isAdmin()) {
