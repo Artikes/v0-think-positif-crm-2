@@ -74,7 +74,7 @@ const Login = () => {
           <img 
             src="https://customer-assets.emergentagent.com/job_talent-management-12/artifacts/f8rng3ex_ThinkPositifWhite%404x.png" 
             alt="ThinkPositif" 
-            className="h-16 w-auto mb-4"
+            className="h-16 w-auto object-contain mb-4 mr-auto"
           />
           <p className="text-lg text-white/80 max-w-md">
             Gérez vos formateurs, talents et clients avec une plateforme moderne et intuitive.
