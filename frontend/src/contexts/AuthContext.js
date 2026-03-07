@@ -137,6 +137,12 @@ export const AuthProvider = ({ children }) => {
     setProfile(null);
   };
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+  };
+
   const isAdmin = () => profile?.role === ROLES.ADMIN;
   const isEmployee = () => profile?.role === ROLES.EMPLOYEE;
   const isApproved = () => profile?.approved === true;
@@ -159,6 +165,7 @@ export const AuthProvider = ({ children }) => {
       signIn,
       signInWithGoogle,
       signOut,
+      logout,
       isAdmin,
       isEmployee,
       isApproved,
