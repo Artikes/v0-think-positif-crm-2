@@ -1,0 +1,9 @@
+{
+  "name": "think-positif-crm",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "ai": "^4.0.0",
+    "@ai-sdk/xai": "^1.0.0"
+  }
+}
