@@ -209,12 +209,12 @@ const Dashboard = () => {
         })
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate recommendations');
+        throw new Error(data.error || 'Failed to generate recommendations');
       }
 
-      const data = await response.json();
       setAiRecommendations(data.recommendations || []);
     } catch (error) {
       console.error('Error generating AI recommendations:', error);
