@@ -85,7 +85,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <h1 className="font-heading text-xl font-bold tracking-tight flex items-center gap-2">
             <img 
               src={theme === 'dark' 
-                ? "https://customer-assets.emergentagent.com/job_talent-management-12/artifacts/f8rng3ex_ThinkPositifWhite%404x.png"
+                ? "/logo-white.png"
                 : "/logo-black.png"
               }
               alt="ThinkPositif" 
