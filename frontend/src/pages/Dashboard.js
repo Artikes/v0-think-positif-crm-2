@@ -209,9 +209,22 @@ const Dashboard = () => {
         })
       });
 
-      const data = await response.json();
+      // Clone response before reading to avoid "body stream already read" errors
+      // caused by PostHog or other interceptors reading the response first
+      const clonedResponse = response.clone();
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        // If original fails, try the clone
+        data = await clonedResponse.json();
+      }
       
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Limite de requêtes atteinte. Veuillez réessayer dans quelques minutes.');
+        }
         throw new Error(data.error || 'Failed to generate recommendations');
       }
 
