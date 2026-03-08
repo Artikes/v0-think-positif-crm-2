@@ -20,7 +20,10 @@ import {
   Euro,
   Activity,
   CheckSquare,
-  Calendar
+  Calendar,
+  Sparkles,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import {
@@ -52,6 +55,9 @@ const Dashboard = () => {
   const [talentDistribution, setTalentDistribution] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [rawData, setRawData] = useState({ clients: [], talents: [], trainers: [], tasks: [] });
 
   useEffect(() => {
     fetchDashboardData();
@@ -105,6 +111,14 @@ const Dashboard = () => {
         { name: 'Haut potentiel', value: statusCounts.high_potential || 0, color: '#3b82f6' },
       ].filter(item => item.value > 0));
 
+      // Store raw data for AI recommendations
+      setRawData({
+        clients: clientsRes.data || [],
+        talents: talentsRes.data || [],
+        trainers: trainersRes.data || [],
+        tasks: tasksRes.data || []
+      });
+
       // Calculate monthly data from real data
       const clients = clientsRes.data || [];
       const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -154,7 +168,7 @@ const Dashboard = () => {
         .limit(5);
       setUpcomingEvents(eventsData || []);
 
-      // Fetch recommendations
+      // Fetch recommendations from database
       const { data: recsData } = await supabase
         .from('recommendations')
         .select('*')
@@ -169,6 +183,58 @@ const Dashboard = () => {
     }
   };
 
+  const generateAIRecommendations = async () => {
+    setAiLoading(true);
+    try {
+      // Fetch fresh trainers data for recommendations
+      const { data: trainersData } = await supabase
+        .from('trainers')
+        .select('first_name, last_name, expertise, email')
+        .limit(10);
+
+      const response = await fetch('/api/generate-recommendations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stats,
+          talents: {
+            distribution: talentDistribution,
+            list: rawData.talents?.slice(0, 10)
+          },
+          clients: rawData.clients?.slice(0, 10),
+          tasks: recentTasks,
+          trainers: trainersData || []
+        })
+      });
+
+      // Use text() then JSON.parse() to avoid "body stream already read" errors
+      // caused by PostHog or other interceptors consuming the response
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Limite de requêtes atteinte. Veuillez réessayer dans quelques minutes.');
+        }
+        let errorMessage = 'Failed to generate recommendations';
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      const data = JSON.parse(responseText);
+      setAiRecommendations(data.recommendations || []);
+    } catch (error) {
+      console.error('Error generating AI recommendations:', error);
+      alert('Erreur lors de la génération des recommandations: ' + error.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(parseFloat(value) || 0);
   };
@@ -179,10 +245,11 @@ const Dashboard = () => {
 
   const getRecommendationIcon = (type) => {
     switch (type) {
-      case 'follow_up': return <Clock className="h-4 w-4 text-orange-500" />;
-      case 'missing_info': return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'match': return <Star className="h-4 w-4 text-blue-500" />;
-      default: return <Activity className="h-4 w-4 text-muted-foreground" />;
+      case 'follow_up': return <Clock className="h-4 w-4 text-orange-500 flex-shrink-0" />;
+      case 'missing_info': return <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />;
+      case 'match': return <Star className="h-4 w-4 text-blue-500 flex-shrink-0" />;
+      case 'optimization': return <TrendingUp className="h-4 w-4 text-green-500 flex-shrink-0" />;
+      default: return <Activity className="h-4 w-4 text-muted-foreground flex-shrink-0" />;
     }
   };
 
@@ -560,30 +627,93 @@ const Dashboard = () => {
         {/* Recommendations */}
         <Card data-testid="recommendations-panel">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-primary" />
-              Recommandations
-            </CardTitle>
-            <CardDescription>Actions suggérées pour optimiser votre activité</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-primary" />
+                  Recommandations
+                </CardTitle>
+                <CardDescription className="mt-1">Actions suggérées pour optimiser votre activité</CardDescription>
+              </div>
+              <Button 
+                onClick={generateAIRecommendations} 
+                disabled={aiLoading || loading}
+                className="gap-2"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyse en cours...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Générer avec l'IA
+                  </>
+                )}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {recommendations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Aucune recommandation pour le moment</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recommendations.map((rec) => (
-                  <div key={rec.id} className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                    {getRecommendationIcon(rec.type)}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{rec.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{rec.description}</p>
+            {/* AI-Generated Recommendations */}
+            {aiRecommendations.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Recommandations IA</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 px-2 ml-auto"
+                    onClick={() => setAiRecommendations([])}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {aiRecommendations.map((rec, index) => (
+                    <div 
+                      key={`ai-${index}`} 
+                      className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors"
+                    >
+                      {getRecommendationIcon(rec.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{rec.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{rec.description}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Database Recommendations */}
+            {recommendations.length === 0 && aiRecommendations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Sparkles className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground mb-3">Aucune recommandation pour le moment</p>
+                <p className="text-xs text-muted-foreground">Cliquez sur "Générer avec l'IA" pour obtenir des recommandations personnalisées basées sur vos données</p>
+              </div>
+            ) : recommendations.length > 0 && (
+              <>
+                {aiRecommendations.length > 0 && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Recommandations enregistrées</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recommendations.map((rec) => (
+                    <div key={rec.id} className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                      {getRecommendationIcon(rec.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{rec.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{rec.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
