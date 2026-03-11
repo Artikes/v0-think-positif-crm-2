@@ -38,35 +38,129 @@ export const TALENT_STATUS = {
   HIGH_POTENTIAL: { label: 'Haut potentiel', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }
 };
 
-export const EXPERTISE_CATEGORIES = [
+// Default expertise categories (fallback)
+export const DEFAULT_EXPERTISE_CATEGORIES = [
   {
     id: 'cultural',
     name: 'Industries Culturelles & Créatives',
-    subcategories: ['Musique', 'Arts', 'Design', 'Médias', 'Diversité']
+    subcategories: ['Musique', 'Arts', 'Design', 'Médias', 'Diversité'],
+    icon: 'Palette',
+    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
   },
   {
     id: 'sport',
     name: 'Sport & Performance Durable',
-    subcategories: ['Innovation', 'Santé', 'Inclusion', 'Bien-être']
+    subcategories: ['Innovation', 'Santé', 'Inclusion', 'Bien-être'],
+    icon: 'Activity',
+    color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
   },
   {
     id: 'industry',
     name: 'Industrie du Futur',
-    subcategories: ['Industrie résiliente', 'Économie circulaire', 'Production intelligente']
+    subcategories: ['Industrie résiliente', 'Économie circulaire', 'Production intelligente'],
+    icon: 'Factory',
+    color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
   },
   {
     id: 'resources',
     name: 'Gestion des Ressources',
-    subcategories: ['Eau', 'Énergie', 'Biodiversité', 'Anti-gaspillage']
+    subcategories: ['Eau', 'Énergie', 'Biodiversité', 'Anti-gaspillage'],
+    icon: 'Leaf',
+    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
   },
   {
     id: 'luxury',
     name: 'Luxe & Tourisme Responsable',
-    subcategories: ['Luxe durable', 'Tourisme éthique']
+    subcategories: ['Luxe durable', 'Tourisme éthique'],
+    icon: 'Sparkles',
+    color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
   },
   {
     id: 'agritech',
     name: 'AgriTech',
-    subcategories: ['Agriculture connectée', 'Souveraineté alimentaire']
+    subcategories: ['Agriculture connectée', 'Souveraineté alimentaire'],
+    icon: 'Wheat',
+    color: 'bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-400'
   }
 ];
+
+// For backward compatibility
+export const EXPERTISE_CATEGORIES = DEFAULT_EXPERTISE_CATEGORIES;
+
+// Function to fetch expertise categories from database
+export const fetchExpertiseCategories = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('expertise_categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      return data.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        subcategories: cat.subcategories || [],
+        icon: cat.icon || 'Tags',
+        color: cat.color || 'bg-gray-100 text-gray-700',
+        image_url: cat.image_url || '',
+        sort_order: cat.sort_order || 0
+      }));
+    }
+    return DEFAULT_EXPERTISE_CATEGORIES;
+  } catch (error) {
+    console.error('Error fetching expertise categories:', error);
+    return DEFAULT_EXPERTISE_CATEGORIES;
+  }
+};
+
+// CRUD operations for expertise categories
+export const createExpertiseCategory = async (category) => {
+  const { data, error } = await supabase
+    .from('expertise_categories')
+    .insert([{
+      id: category.id,
+      name: category.name,
+      subcategories: category.subcategories || [],
+      icon: category.icon || 'Tags',
+      color: category.color || 'bg-gray-100 text-gray-700',
+      image_url: category.image_url || '',
+      sort_order: category.sort_order || 0
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateExpertiseCategory = async (id, updates) => {
+  const { data, error } = await supabase
+    .from('expertise_categories')
+    .update({
+      name: updates.name,
+      subcategories: updates.subcategories,
+      icon: updates.icon,
+      color: updates.color,
+      image_url: updates.image_url,
+      sort_order: updates.sort_order,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const deleteExpertiseCategory = async (id) => {
+  const { error } = await supabase
+    .from('expertise_categories')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return true;
+};

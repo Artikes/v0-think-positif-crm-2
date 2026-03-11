@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, TALENT_STATUS, EXPERTISE_CATEGORIES } from '../lib/supabase';
+import { supabase, TALENT_STATUS, fetchExpertiseCategories, DEFAULT_EXPERTISE_CATEGORIES } from '../lib/supabase';
 import Layout from '../components/layout/Layout';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -68,6 +68,7 @@ const Talents = () => {
   const { isAdmin, profile } = useAuth();
   const [talents, setTalents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expertiseCategories, setExpertiseCategories] = useState(DEFAULT_EXPERTISE_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -91,7 +92,13 @@ const Talents = () => {
 
   useEffect(() => {
     fetchTalents();
+    loadExpertiseCategories();
   }, []);
+
+  const loadExpertiseCategories = async () => {
+    const categories = await fetchExpertiseCategories();
+    setExpertiseCategories(categories);
+  };
 
   const fetchTalents = async () => {
     try {
@@ -305,9 +312,9 @@ const Talents = () => {
     return labels[id] || id;
   };
 
-  const getExpertiseLabel = (id) => {
-    const category = EXPERTISE_CATEGORIES.find(c => c.id === id);
-    return category?.name || id;
+const getExpertiseLabel = (id) => {
+  const category = expertiseCategories.find(c => c.id === id);
+  return category?.name || id;
   };
 
   const formatDate = (date) => {
@@ -395,9 +402,9 @@ const Talents = () => {
                 <div className="space-y-2">
                   <Label>Thèmes d'expertise</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border rounded-lg">
-                    {EXPERTISE_CATEGORIES.map(category => (
-                      <div key={category.id} className="flex items-center space-x-2">
-                        <Checkbox id={`talent-${category.id}`} checked={formData.expertise.includes(category.id)} onCheckedChange={(checked) => handleExpertiseChange(category.id, checked)} />
+{expertiseCategories.map(category => (
+  <div key={category.id} className="flex items-center space-x-2">
+  <Checkbox id={`talent-${category.id}`} checked={formData.expertise.includes(category.id)} onCheckedChange={(checked) => handleExpertiseChange(category.id, checked)} />
                         <label htmlFor={`talent-${category.id}`} className="text-sm cursor-pointer">{category.name}</label>
                       </div>
                     ))}

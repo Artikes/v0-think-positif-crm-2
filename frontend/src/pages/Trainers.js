@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, EXPERTISE_CATEGORIES } from '../lib/supabase';
+import { supabase, fetchExpertiseCategories, DEFAULT_EXPERTISE_CATEGORIES } from '../lib/supabase';
 import Layout from '../components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -74,6 +74,7 @@ const Trainers = () => {
   const { isAdmin } = useAuth();
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expertiseCategories, setExpertiseCategories] = useState(DEFAULT_EXPERTISE_CATEGORIES);
   const [searchQuery, setSearchQuery] = useState('');
   const [expertiseFilter, setExpertiseFilter] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -93,9 +94,15 @@ const Trainers = () => {
   const [pendingFiles, setPendingFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    fetchTrainers();
+useEffect(() => {
+  fetchTrainers();
+  loadExpertiseCategories();
   }, []);
+
+  const loadExpertiseCategories = async () => {
+    const categories = await fetchExpertiseCategories();
+    setExpertiseCategories(categories);
+  };
 
   const fetchTrainers = async () => {
     try {
@@ -306,9 +313,9 @@ const Trainers = () => {
     return matchesSearch && matchesExpertise;
   });
 
-  const getExpertiseLabel = (id) => {
-    const category = EXPERTISE_CATEGORIES.find(c => c.id === id);
-    return category?.name || id;
+const getExpertiseLabel = (id) => {
+  const category = expertiseCategories.find(c => c.id === id);
+  return category?.name || id;
   };
 
   const getExpertiseShort = (id) => {
@@ -390,9 +397,9 @@ const Trainers = () => {
                 <div className="space-y-2">
                   <Label>Domaines d'expertise</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border rounded-lg">
-                    {EXPERTISE_CATEGORIES.map(category => (
-                      <div key={category.id} className="flex items-center space-x-2">
-                        <Checkbox id={category.id} checked={formData.expertise.includes(category.id)} onCheckedChange={(checked) => handleExpertiseChange(category.id, checked)} />
+{expertiseCategories.map(category => (
+  <div key={category.id} className="flex items-center space-x-2">
+  <Checkbox id={category.id} checked={formData.expertise.includes(category.id)} onCheckedChange={(checked) => handleExpertiseChange(category.id, checked)} />
                         <label htmlFor={category.id} className="text-sm cursor-pointer">{category.name}</label>
                       </div>
                     ))}
@@ -471,10 +478,10 @@ const Trainers = () => {
               <Select value={expertiseFilter} onValueChange={setExpertiseFilter}>
                 <SelectTrigger className="w-full sm:w-[250px]"><SelectValue placeholder="Expertise" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes les expertises</SelectItem>
-                  {EXPERTISE_CATEGORIES.map(category => (
-                    <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                  ))}
+<SelectItem value="all">Toutes les expertises</SelectItem>
+  {expertiseCategories.map(category => (
+  <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+  ))}
                 </SelectContent>
               </Select>
             </div>
