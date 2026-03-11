@@ -164,3 +164,63 @@ export const deleteExpertiseCategory = async (id) => {
   if (error) throw error;
   return true;
 };
+
+// Schools CRUD operations
+export const fetchSchools = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching schools:', error);
+    return [];
+  }
+};
+
+export const createSchool = async (school) => {
+  const { data, error } = await supabase
+    .from('schools')
+    .insert([{
+      name: school.name,
+      location: school.location || '',
+      website: school.website || '',
+      color: school.color || 'bg-blue-100 text-blue-700'
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateSchool = async (id, updates) => {
+  const { data, error } = await supabase
+    .from('schools')
+    .update({
+      name: updates.name,
+      location: updates.location,
+      website: updates.website,
+      color: updates.color,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const deleteSchool = async (id) => {
+  const { error } = await supabase
+    .from('schools')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return true;
+};

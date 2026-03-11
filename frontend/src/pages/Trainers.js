@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, fetchExpertiseCategories, DEFAULT_EXPERTISE_CATEGORIES } from '../lib/supabase';
+import { supabase, fetchExpertiseCategories, DEFAULT_EXPERTISE_CATEGORIES, fetchSchools, createSchool } from '../lib/supabase';
 import Layout from '../components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -42,7 +42,8 @@ import {
   Upload,
   Download,
   Award,
-  Building
+  Building,
+  X
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -75,6 +76,8 @@ const Trainers = () => {
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expertiseCategories, setExpertiseCategories] = useState(DEFAULT_EXPERTISE_CATEGORIES);
+  const [availableSchools, setAvailableSchools] = useState([]);
+  const [schoolInput, setSchoolInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expertiseFilter, setExpertiseFilter] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -87,7 +90,7 @@ const Trainers = () => {
     phone: '',
     diploma_level: 'bac+5',
     expertise: [],
-    schools: '',
+    schools: [],
     comments: ''
   });
   const [documents, setDocuments] = useState([]);
@@ -97,11 +100,47 @@ const Trainers = () => {
 useEffect(() => {
   fetchTrainers();
   loadExpertiseCategories();
+  loadSchools();
   }, []);
 
   const loadExpertiseCategories = async () => {
     const categories = await fetchExpertiseCategories();
     setExpertiseCategories(categories);
+  };
+
+  const loadSchools = async () => {
+    const schools = await fetchSchools();
+    setAvailableSchools(schools);
+  };
+
+  const handleAddSchool = async (schoolName) => {
+    if (!schoolName.trim()) return;
+    const trimmedName = schoolName.trim();
+    
+    // Check if already in the list
+    if (formData.schools.includes(trimmedName)) {
+      setSchoolInput('');
+      return;
+    }
+    
+    // Add to form data
+    setFormData({ ...formData, schools: [...formData.schools, trimmedName] });
+    
+    // Check if school exists in database, if not create it
+    const existingSchool = availableSchools.find(s => s.name.toLowerCase() === trimmedName.toLowerCase());
+    if (!existingSchool) {
+      try {
+        await createSchool({ name: trimmedName });
+        loadSchools(); // Refresh the list
+      } catch (error) {
+        console.error('Error creating school:', error);
+      }
+    }
+    setSchoolInput('');
+  };
+
+  const handleRemoveSchool = (schoolName) => {
+    setFormData({ ...formData, schools: formData.schools.filter(s => s !== schoolName) });
   };
 
   const fetchTrainers = async () => {
@@ -191,7 +230,7 @@ useEffect(() => {
         phone: formData.phone || null,
         diploma_level: formData.diploma_level,
         expertise: formData.expertise || [],
-        schools: formData.schools || null,
+        schools: formData.schools || [],
         comments: formData.comments || null,
       };
 
@@ -276,9 +315,10 @@ useEffect(() => {
       phone: trainer.phone || '',
       diploma_level: trainer.diploma_level || 'bac+5',
       expertise: trainer.expertise || [],
-      schools: trainer.schools || '',
+      schools: trainer.schools || [],
       comments: trainer.comments || ''
     });
+    setSchoolInput('');
     setShowAddDialog(true);
   };
 
@@ -291,6 +331,7 @@ useEffect(() => {
   const resetForm = () => {
     setSelectedTrainer(null);
     setPendingFiles([]);
+    setSchoolInput('');
     setFormData({
       first_name: '',
       last_name: '',
@@ -298,7 +339,7 @@ useEffect(() => {
       phone: '',
       diploma_level: 'bac+5',
       expertise: [],
-      schools: '',
+      schools: [],
       comments: ''
     });
   };
@@ -407,8 +448,62 @@ const getExpertiseLabel = (id) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="schools">Écoles partenaires</Label>
-                  <Textarea id="schools" value={formData.schools} onChange={(e) => setFormData({ ...formData, schools: e.target.value })} rows={2} />
+                  <Label>Écoles partenaires</Label>
+                  <div className="border rounded-lg p-3 space-y-2">
+                    {/* Display selected schools as tags */}
+                    {formData.schools.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.schools.map((school, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                            <Building className="h-3 w-3" />
+                            {school}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSchool(school)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {/* Input with datalist for suggestions */}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          placeholder="Ajouter une école..."
+                          value={schoolInput}
+                          onChange={(e) => setSchoolInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddSchool(schoolInput);
+                            }
+                          }}
+                          list="schools-list"
+                        />
+                        <datalist id="schools-list">
+                          {availableSchools
+                            .filter(s => !formData.schools.includes(s.name))
+                            .map(school => (
+                              <option key={school.id} value={school.name} />
+                            ))}
+                        </datalist>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddSchool(schoolInput)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Tapez le nom d'une école et appuyez sur Entrée. Les nouvelles écoles seront ajoutées automatiquement.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -549,10 +644,16 @@ const getExpertiseLabel = (id) => {
                         <span>{trainer.phone}</span>
                       </div>
                     )}
-                    {trainer.schools && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Building className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <span className="truncate">{trainer.schools}</span>
+                    {trainer.schools && trainer.schools.length > 0 && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <Building className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <div className="flex flex-wrap gap-1">
+                          {trainer.schools.map((school, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {school}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -621,10 +722,17 @@ const getExpertiseLabel = (id) => {
                     </div>
                   </div>
 
-                  {selectedTrainer.schools && (
+                  {selectedTrainer.schools && selectedTrainer.schools.length > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground mb-2">Écoles partenaires</p>
-                      <p className="text-sm bg-muted/50 p-3 rounded-lg">{selectedTrainer.schools}</p>
+                      <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg">
+                        {selectedTrainer.schools.map((school, idx) => (
+                          <Badge key={idx} variant="secondary" className="flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {school}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
 
