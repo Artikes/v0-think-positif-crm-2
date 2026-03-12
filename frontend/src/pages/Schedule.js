@@ -65,7 +65,8 @@ const Schedule = () => {
     end_time: '',
     event_type: 'meeting',
     location: '',
-    color: '#3b82f6'
+    color: '#3b82f6',
+    assigned_to: ''
   });
 
   const getStartOfWeek = (date) => {
@@ -87,7 +88,8 @@ const Schedule = () => {
         .from('schedules')
         .select(`
           *,
-          user:profiles!schedules_user_id_fkey(id, name, email)
+          user:profiles!schedules_user_id_fkey(id, name, email),
+          assignee:profiles!schedules_assigned_to_fkey(id, name, email)
         `)
         .gte('start_time', startOfWeek.toISOString())
         .lte('start_time', endOfWeek.toISOString())
@@ -140,7 +142,8 @@ const Schedule = () => {
         event_type: formData.event_type,
         location: formData.location || null,
         color: EVENT_TYPES[formData.event_type]?.color || '#3b82f6',
-        user_id: profile?.id || null
+        user_id: profile?.id || null,
+        assigned_to: formData.assigned_to || null
       };
 
       if (selectedEvent) {
@@ -189,7 +192,8 @@ const Schedule = () => {
       end_time: event.end_time.slice(0, 16),
       event_type: event.event_type,
       location: event.location || '',
-      color: event.color
+      color: event.color,
+      assigned_to: event.assigned_to || ''
     });
     setShowAddDialog(true);
   };
@@ -219,7 +223,8 @@ const Schedule = () => {
       end_time: '',
       event_type: 'meeting',
       location: '',
-      color: '#3b82f6'
+      color: '#3b82f6',
+      assigned_to: ''
     });
   };
 
@@ -349,6 +354,25 @@ const Schedule = () => {
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Assigné à</Label>
+                  <Select value={formData.assigned_to} onValueChange={(v) => setFormData({ ...formData, assigned_to: v === 'none' ? '' : v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un membre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Non assigné</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            {user.name || user.email}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <DialogFooter>
                   <Button type="submit" data-testid="event-submit-btn">
                     {selectedEvent ? 'Mettre à jour' : 'Créer'}
@@ -444,24 +468,24 @@ const Schedule = () => {
                               {EVENT_TYPES[event.event_type]?.label || event.event_type}
                             </Badge>
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatTime(event.start_time)} - {formatTime(event.end_time)}
-                            </span>
-                            {event.user && (
-                              <span className="flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {event.user.name}
-                              </span>
-                            )}
-                            {event.location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {event.location}
-                              </span>
-                            )}
-                          </div>
+<div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
+                                            <span className="flex items-center gap-1">
+                                              <Clock className="h-3 w-3" />
+                                              {formatTime(event.start_time)} - {formatTime(event.end_time)}
+                                            </span>
+                                            {event.assignee && (
+                                              <span className="flex items-center gap-1 text-primary">
+                                                <User className="h-3 w-3" />
+                                                {event.assignee.name || event.assignee.email}
+                                              </span>
+                                            )}
+                                            {event.location && (
+                                              <span className="flex items-center gap-1">
+                                                <MapPin className="h-3 w-3" />
+                                                {event.location}
+                                              </span>
+                                            )}
+                                          </div>
                         </div>
                       ))}
                     </div>
@@ -517,10 +541,10 @@ const Schedule = () => {
                               <Clock className="h-3 w-3" />
                               {formatTime(event.start_time)} - {formatTime(event.end_time)}
                             </div>
-                            {event.user && (
-                              <div className="flex items-center gap-1 text-muted-foreground mt-1">
+                            {event.assignee && (
+                              <div className="flex items-center gap-1 text-primary mt-1">
                                 <User className="h-3 w-3" />
-                                {event.user.name}
+                                {event.assignee.name || event.assignee.email}
                               </div>
                             )}
                             {event.location && (
