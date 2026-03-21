@@ -38,7 +38,8 @@ import {
   Trash2,
   Calendar,
   User,
-  Flag
+  Flag,
+  X
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -69,6 +70,7 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [formData, setFormData] = useState({
@@ -211,8 +213,16 @@ const Tasks = () => {
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesAssignee = assigneeFilter === 'all' || task.assigned_to === assigneeFilter;
+    return matchesSearch && matchesStatus && matchesAssignee;
   });
+
+  const hasActiveFilters = statusFilter !== 'all' || assigneeFilter !== 'all';
+  
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setAssigneeFilter('all');
+  };
 
   const formatDate = (date) => {
     if (!date) return '-';
@@ -374,6 +384,30 @@ const Tasks = () => {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]" data-testid="task-assignee-filter">
+                  <SelectValue placeholder="Assigné à" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les membres</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        {user.name || user.email}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+                  <X className="h-4 w-4 mr-1" />
+                  Effacer
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
