@@ -196,6 +196,26 @@ const Dashboard = () => {
         .select('first_name, last_name, expertise, email')
         .limit(10);
 
+      // Fetch users/team members
+      const { data: usersData } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .limit(20);
+
+      // Fetch upcoming schedules (next 7 days)
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const { data: schedulesData } = await supabase
+        .from('schedules')
+        .select(`
+          *,
+          assignee:profiles!schedules_assigned_to_fkey(id, name, email)
+        `)
+        .gte('start_time', now.toISOString())
+        .lte('start_time', nextWeek.toISOString())
+        .order('start_time', { ascending: true })
+        .limit(20);
+
       const response = await fetch('/api/generate-recommendations', {
         method: 'POST',
         headers: {
@@ -210,6 +230,8 @@ const Dashboard = () => {
           clients: rawData.clients?.slice(0, 10),
           tasks: recentTasks,
           trainers: trainersData || [],
+          users: usersData || [],
+          schedules: schedulesData || [],
           customPrompt: customPrompt || null
         })
       });

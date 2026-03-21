@@ -18,7 +18,9 @@ import {
   FileImage,
   FileSpreadsheet,
   Loader2,
-  Eye
+  Eye,
+  User,
+  X
 } from 'lucide-react';
 import {
   Select,
@@ -46,10 +48,27 @@ const Documents = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [trainers, setTrainers] = useState([]);
+  const [talents, setTalents] = useState([]);
 
   useEffect(() => {
     fetchDocuments();
+    fetchTrainersAndTalents();
   }, []);
+
+  const fetchTrainersAndTalents = async () => {
+    try {
+      const [trainersRes, talentsRes] = await Promise.all([
+        supabase.from('trainers').select('id, first_name, last_name').order('last_name'),
+        supabase.from('talents').select('id, first_name, last_name').order('last_name')
+      ]);
+      setTrainers(trainersRes.data || []);
+      setTalents(talentsRes.data || []);
+    } catch (error) {
+      console.error('Error fetching trainers/talents:', error);
+    }
+  };
 
   const fetchDocuments = async () => {
     try {
