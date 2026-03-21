@@ -36,7 +36,9 @@ import {
   MapPin,
   User,
   Edit,
-  Trash2
+  Trash2,
+  Filter,
+  X
 } from 'lucide-react';
 import ExportImportButtons from '../components/ExportImportButtons';
 
@@ -58,6 +60,8 @@ const Schedule = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [filterType, setFilterType] = useState('all');
+  const [filterAssignee, setFilterAssignee] = useState('all');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -247,11 +251,32 @@ const Schedule = () => {
     return date.toDateString() === today.toDateString();
   };
 
-  const getEventsForDay = (date) => {
+  const getFilteredEvents = () => {
     return events.filter(event => {
+      // Filter by type
+      if (filterType !== 'all' && event.event_type !== filterType) {
+        return false;
+      }
+      // Filter by assignee
+      if (filterAssignee !== 'all' && event.assigned_to !== filterAssignee) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  const getEventsForDay = (date) => {
+    return getFilteredEvents().filter(event => {
       const eventDate = new Date(event.start_time);
       return eventDate.toDateString() === date.toDateString();
     });
+  };
+
+  const hasActiveFilters = filterType !== 'all' || filterAssignee !== 'all';
+
+  const clearFilters = () => {
+    setFilterType('all');
+    setFilterAssignee('all');
   };
 
   const weekDays = getWeekDays();
@@ -415,6 +440,65 @@ const Schedule = () => {
             </div>
           ))}
         </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span className="text-sm font-medium">Filtres</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Type d'événement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les types</SelectItem>
+                    {Object.entries(EVENT_TYPES).map(([key, { label, color }]) => (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                          {label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Assigné à" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les membres</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-3 w-3" />
+                          {user.name || user.email}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+                    <X className="h-4 w-4 mr-1" />
+                    Effacer
+                  </Button>
+                )}
+              </div>
+              {hasActiveFilters && (
+                <div className="text-sm text-muted-foreground ml-auto">
+                  {getFilteredEvents().length} événement(s) affiché(s)
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Week View - Desktop: 7-column grid, Mobile: stacked list */}
         {/* Mobile view */}
