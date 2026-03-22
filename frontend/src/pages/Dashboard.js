@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import {
   Users,
@@ -23,7 +25,8 @@ import {
   Calendar,
   Sparkles,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Send
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import {
@@ -57,6 +60,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [aiPrompt, setAiPrompt] = useState('');
   const [rawData, setRawData] = useState({ clients: [], talents: [], trainers: [], tasks: [] });
 
   useEffect(() => {
@@ -183,7 +187,7 @@ const Dashboard = () => {
     }
   };
 
-  const generateAIRecommendations = async () => {
+  const generateAIRecommendations = async (customPrompt = '') => {
     setAiLoading(true);
     try {
       // Fetch fresh trainers data for recommendations
@@ -191,6 +195,26 @@ const Dashboard = () => {
         .from('trainers')
         .select('first_name, last_name, expertise, email')
         .limit(10);
+
+      // Fetch users/team members
+      const { data: usersData } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .limit(20);
+
+      // Fetch upcoming schedules (next 7 days)
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const { data: schedulesData } = await supabase
+        .from('schedules')
+        .select(`
+          *,
+          assignee:profiles!schedules_assigned_to_fkey(id, name, email)
+        `)
+        .gte('start_time', now.toISOString())
+        .lte('start_time', nextWeek.toISOString())
+        .order('start_time', { ascending: true })
+        .limit(20);
 
       const response = await fetch('/api/generate-recommendations', {
         method: 'POST',
@@ -205,7 +229,10 @@ const Dashboard = () => {
           },
           clients: rawData.clients?.slice(0, 10),
           tasks: recentTasks,
-          trainers: trainersData || []
+          trainers: trainersData || [],
+          users: usersData || [],
+          schedules: schedulesData || [],
+          customPrompt: customPrompt || null
         })
       });
 
@@ -627,31 +654,51 @@ const Dashboard = () => {
         {/* Recommendations */}
         <Card data-testid="recommendations-panel">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-primary" />
-                  Recommandations
-                </CardTitle>
-                <CardDescription className="mt-1">Actions suggérées pour optimiser votre activité</CardDescription>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Recommandations IA
+                  </CardTitle>
+                  <CardDescription className="mt-1">Actions suggérées pour optimiser votre activité</CardDescription>
+                </div>
+                <Button 
+                  onClick={() => generateAIRecommendations(aiPrompt)} 
+                  disabled={aiLoading || loading}
+                  className="gap-2"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyse en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Générer
+                    </>
+                  )}
+                </Button>
               </div>
-              <Button 
-                onClick={generateAIRecommendations} 
-                disabled={aiLoading || loading}
-                className="gap-2"
-              >
-                {aiLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Analyse en cours...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Générer avec l'IA
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Posez une question spécifique ou laissez vide pour des recommandations générales... (ex: Comment améliorer la rentabilité? Quels talents contacter en priorité?)"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  className="min-h-[60px] resize-none"
+                  disabled={aiLoading}
+                />
+                <Button 
+                  variant="outline"
+                  size="icon"
+                  className="h-[60px] w-[60px] flex-shrink-0"
+                  onClick={() => generateAIRecommendations(aiPrompt)} 
+                  disabled={aiLoading || loading}
+                >
+                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

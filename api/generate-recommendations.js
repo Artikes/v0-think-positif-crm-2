@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { stats, talents, clients, tasks, trainers } = req.body;
+    const { stats, talents, clients, tasks, trainers, schedules, users, customPrompt } = req.body;
 
     // Build context from actual data
     const dataContext = `
@@ -43,7 +43,16 @@ ${tasks?.slice(0, 5).map(t => `- ${t.title} (Priorité: ${t.priority}, Échéanc
 FORMATEURS:
 ${trainers?.slice(0, 5).map(t => `- ${t.first_name} ${t.last_name}: ${t.expertise?.join(', ') || 'Expertise non définie'}`).join('\n') || 'Aucun formateur'}
 
-Génère exactement 3 à 5 recommandations stratégiques et actionnables basées sur ces données. 
+MEMBRES DE L'ÉQUIPE:
+${users?.map(u => `- ${u.name || u.email} (ID: ${u.id})`).join('\n') || 'Aucun membre'}
+
+PLANNING / ÉVÉNEMENTS À VENIR (7 prochains jours):
+${schedules?.length > 0 ? schedules.map(s => `- ${s.title} | ${new Date(s.start_time).toLocaleDateString('fr-FR')} ${new Date(s.start_time).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})} - ${new Date(s.end_time).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})} | Type: ${s.event_type} | Assigné à: ${s.assignee?.name || s.assignee?.email || 'Non assigné'}`).join('\n') : 'Aucun événement planifié'}
+
+${customPrompt ? `DEMANDE SPÉCIFIQUE DE L'UTILISATEUR:
+${customPrompt}
+
+Génère exactement 3 à 5 recommandations en répondant à cette demande spécifique tout en tenant compte des données ci-dessus.` : `Génère exactement 3 à 5 recommandations stratégiques et actionnables basées sur ces données.`}
 Chaque recommandation doit être spécifique aux données fournies.
 
 IMPORTANT: Réponds UNIQUEMENT avec un tableau JSON valide dans ce format exact (sans texte avant ou après):

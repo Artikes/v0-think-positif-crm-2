@@ -18,7 +18,9 @@ import {
   FileImage,
   FileSpreadsheet,
   Loader2,
-  Eye
+  Eye,
+  User,
+  X
 } from 'lucide-react';
 import {
   Select,
@@ -46,10 +48,27 @@ const Documents = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [trainers, setTrainers] = useState([]);
+  const [talents, setTalents] = useState([]);
 
   useEffect(() => {
     fetchDocuments();
+    fetchTrainersAndTalents();
   }, []);
+
+  const fetchTrainersAndTalents = async () => {
+    try {
+      const [trainersRes, talentsRes] = await Promise.all([
+        supabase.from('trainers').select('id, first_name, last_name').order('last_name'),
+        supabase.from('talents').select('id, first_name, last_name').order('last_name')
+      ]);
+      setTrainers(trainersRes.data || []);
+      setTalents(talentsRes.data || []);
+    } catch (error) {
+      console.error('Error fetching trainers/talents:', error);
+    }
+  };
 
   const fetchDocuments = async () => {
     try {
@@ -220,8 +239,23 @@ const Documents = () => {
     const matchesSearch = doc.file_name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'all' || doc.entity_type === typeFilter;
     const matchesCategory = categoryFilter === 'all' || doc.document_category === categoryFilter;
-    return matchesSearch && matchesType && matchesCategory;
+    const matchesOwner = ownerFilter === 'all' || doc.entity_id === ownerFilter;
+    return matchesSearch && matchesType && matchesCategory && matchesOwner;
   });
+
+  const hasActiveFilters = typeFilter !== 'all' || categoryFilter !== 'all' || ownerFilter !== 'all';
+
+  const clearFilters = () => {
+    setTypeFilter('all');
+    setCategoryFilter('all');
+    setOwnerFilter('all');
+  };
+
+  // Get combined list of trainers and talents for the filter
+  const ownerOptions = [
+    ...trainers.map(t => ({ id: t.id, name: `${t.first_name} ${t.last_name}`, type: 'Formateur' })),
+    ...talents.map(t => ({ id: t.id, name: `${t.first_name} ${t.last_name}`, type: 'Talent' }))
+  ].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Layout>
@@ -296,6 +330,31 @@ const Documents = () => {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]" data-testid="document-owner-filter">
+                  <SelectValue placeholder="Formateur / Talent" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  {ownerOptions.map((owner) => (
+                    <SelectItem key={owner.id} value={owner.id}>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        <span>{owner.name}</span>
+                        <span className="text-xs text-muted-foreground">({owner.type})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+                  <X className="h-4 w-4 mr-1" />
+                  Effacer
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
