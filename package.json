@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@ai-sdk/google": "^3.0.63",
     "@ai-sdk/xai": "^1.0.0",
     "@supabase/supabase-js": "^2.99.1",
     "ai": "^4.0.0",
