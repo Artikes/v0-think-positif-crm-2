@@ -216,12 +216,36 @@ const Dashboard = () => {
         .order('start_time', { ascending: true })
         .limit(20);
 
-      const response = await fetch('/api/generate-recommendations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Use XMLHttpRequest to bypass PostHog/fetch interceptors that cause body stream issues
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/generate-recommendations', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('Invalid JSON response'));
+            }
+          } else if (xhr.status === 429) {
+            reject(new Error('Limite de requêtes atteinte. Veuillez réessayer dans quelques minutes.'));
+          } else {
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              reject(new Error(errorData.error || 'Failed to generate recommendations'));
+            } catch {
+              reject(new Error('Failed to generate recommendations'));
+            }
+          }
+        };
+        
+        xhr.onerror = function() {
+          reject(new Error('Network error'));
+        };
+        
+        xhr.send(JSON.stringify({
           stats,
           talents: {
             distribution: talentDistribution,
@@ -233,26 +257,9 @@ const Dashboard = () => {
           users: usersData || [],
           schedules: schedulesData || [],
           customPrompt: customPrompt || null
-        })
+        }));
       });
 
-      // Use text() then JSON.parse() to avoid "body stream already read" errors
-      // caused by PostHog or other interceptors consuming the response
-      const responseText = await response.text();
-      
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Limite de requêtes atteinte. Veuillez réessayer dans quelques minutes.');
-        }
-        let errorMessage = 'Failed to generate recommendations';
-        try {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.error || errorMessage;
-        } catch {}
-        throw new Error(errorMessage);
-      }
-
-      const data = JSON.parse(responseText);
       setAiRecommendations(data.recommendations || []);
     } catch (error) {
       console.error('Error generating AI recommendations:', error);
