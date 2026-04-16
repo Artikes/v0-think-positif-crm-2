@@ -1,5 +1,5 @@
 import { generateText } from 'ai';
-import { xai } from '@ai-sdk/xai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export default async function handler(req, res) {
   // Only allow POST requests
@@ -7,10 +7,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.XAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
-    return res.status(500).json({ error: 'XAI_API_KEY is not configured. Please add your xAI API key in the project settings.' });
+    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured. Please add your Gemini API key in the project settings.' });
   }
 
   try {
@@ -71,11 +71,14 @@ Types disponibles:
 - "optimization": Amélioration de processus ou de rentabilité
 `;
 
-    // Call Grok API using AI SDK
+    // Create Google Gemini provider
+    const google = createGoogleGenerativeAI({
+      apiKey: apiKey,
+    });
+
+    // Call Gemini API using AI SDK
     const result = await generateText({
-      model: xai('grok-4', {
-        apiKey: apiKey,
-      }),
+      model: google('gemini-1.5-flash'),
       prompt: dataContext,
       system: 'Tu es un assistant CRM expert qui génère des recommandations stratégiques en JSON. Réponds uniquement avec du JSON valide, sans markdown ni texte supplémentaire.',
     });
@@ -83,7 +86,7 @@ Types disponibles:
     const textResponse = result.text;
     
     if (!textResponse) {
-      return res.status(500).json({ error: 'No response from Grok' });
+      return res.status(500).json({ error: 'No response from Gemini' });
     }
 
     // Parse the JSON response - handle potential markdown code blocks
@@ -103,7 +106,7 @@ Types disponibles:
       
       recommendations = JSON.parse(cleanedResponse);
     } catch (parseError) {
-      console.error('Failed to parse Grok response:', textResponse);
+      console.error('Failed to parse Gemini response:', textResponse);
       return res.status(500).json({ 
         error: 'Failed to parse recommendations',
         raw: textResponse 
