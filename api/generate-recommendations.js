@@ -73,7 +73,7 @@ Types disponibles:
 
     // Call Grok API using AI SDK
     const result = await generateText({
-      model: xai('grok-3-fast', {
+      model: xai('grok-4', {
         apiKey: apiKey,
       }),
       prompt: dataContext,
@@ -113,9 +113,10 @@ Types disponibles:
     return res.status(200).json({ recommendations });
   } catch (error) {
     console.error('Error generating recommendations:', error);
+    console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message 
+      error: error.message || 'Internal server error',
+      details: error.cause?.message || error.code || 'Unknown error'
     });
   }
 }
