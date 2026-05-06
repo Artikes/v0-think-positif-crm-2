@@ -120,6 +120,31 @@ const Tasks = () => {
     }
   };
 
+  const sendAssignmentNotification = async (assigneeId, taskTitle, taskDescription, dueDate) => {
+    // Find assignee details
+    const assignee = users.find(u => u.id === assigneeId);
+    if (!assignee?.email) return;
+
+    try {
+      await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'task_assignment',
+          to: assignee.email,
+          assigneeName: assignee.name || assignee.email,
+          assignerName: profile?.name || profile?.email || 'Un membre',
+          itemTitle: taskTitle,
+          itemDescription: taskDescription,
+          dueDate: dueDate
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+      // Don't show error to user - notification is not critical
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -132,6 +157,10 @@ const Tasks = () => {
         assigned_to: formData.assigned_to || null,
         created_by: profile?.id
       };
+
+      // Check if assignee changed or is new
+      const isNewAssignment = formData.assigned_to && 
+        (!selectedTask || selectedTask.assigned_to !== formData.assigned_to);
 
       if (selectedTask) {
         const { error } = await supabase
@@ -146,6 +175,16 @@ const Tasks = () => {
           .insert([payload]);
         if (error) throw error;
         toast.success('Tâche créée');
+      }
+
+      // Send email notification if new assignment
+      if (isNewAssignment) {
+        sendAssignmentNotification(
+          formData.assigned_to,
+          formData.title,
+          formData.description,
+          formData.due_date
+        );
       }
 
       setShowAddDialog(false);

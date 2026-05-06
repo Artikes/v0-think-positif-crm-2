@@ -135,6 +135,34 @@ const Schedule = () => {
     return days;
   };
 
+  const sendScheduleNotification = async (assigneeId, eventData) => {
+    // Find assignee details
+    const assignee = users.find(u => u.id === assigneeId);
+    if (!assignee?.email) return;
+
+    try {
+      await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'schedule_assignment',
+          to: assignee.email,
+          assigneeName: assignee.name || assignee.email,
+          assignerName: profile?.name || profile?.email || 'Un membre',
+          itemTitle: eventData.title,
+          itemDescription: eventData.description,
+          itemType: eventData.event_type,
+          startTime: eventData.start_time,
+          endTime: eventData.end_time,
+          location: eventData.location
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+      // Don't show error to user - notification is not critical
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -150,6 +178,10 @@ const Schedule = () => {
         assigned_to: formData.assigned_to || null
       };
 
+      // Check if assignee changed or is new
+      const isNewAssignment = formData.assigned_to && 
+        (!selectedEvent || selectedEvent.assigned_to !== formData.assigned_to);
+
       if (selectedEvent) {
         const { error } = await supabase
           .from('schedules')
@@ -163,6 +195,11 @@ const Schedule = () => {
           .insert([payload]);
         if (error) throw error;
         toast.success('Événement créé');
+      }
+
+      // Send email notification if new assignment
+      if (isNewAssignment) {
+        sendScheduleNotification(formData.assigned_to, formData);
       }
 
       setShowAddDialog(false);
