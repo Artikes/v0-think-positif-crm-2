@@ -16,6 +16,7 @@ import Expertise from './pages/Expertise';
 import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import Schedule from './pages/Schedule';
+import Trombinoscope from './pages/Trombinoscope';
 import PendingApproval from './pages/PendingApproval';
 import './App.css';
 
@@ -101,6 +102,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Expertise />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/team"
+              element={
+                <ProtectedRoute>
+                  <Trombinoscope />
                 </ProtectedRoute>
               }
             />
