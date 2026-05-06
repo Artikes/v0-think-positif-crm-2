@@ -277,6 +277,7 @@ const UserManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
+                  <SelectItem value={ROLES.SUPERADMIN}>Super Admin</SelectItem>
                   <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
                   <SelectItem value={ROLES.EMPLOYEE}>Employé</SelectItem>
                 </SelectContent>
@@ -344,10 +345,12 @@ const UserManagement = () => {
                       <TableCell>{user.email || '-'}</TableCell>
                       <TableCell>
                         <Badge 
-                          variant={user.role === ROLES.ADMIN ? 'default' : 'secondary'}
+                          variant={user.role === ROLES.SUPERADMIN ? 'destructive' : user.role === ROLES.ADMIN ? 'default' : 'secondary'}
                           className="capitalize"
                         >
-                          {user.role === ROLES.ADMIN ? (
+                          {user.role === ROLES.SUPERADMIN ? (
+                            <><Shield className="h-3 w-3 mr-1" /> Super Admin</>
+                          ) : user.role === ROLES.ADMIN ? (
                             <><Shield className="h-3 w-3 mr-1" /> Admin</>
                           ) : (
                             <><User className="h-3 w-3 mr-1" /> Employé</>
@@ -465,6 +468,7 @@ const UserManagement = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={ROLES.SUPERADMIN}>Super Admin</SelectItem>
                     <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
                     <SelectItem value={ROLES.EMPLOYEE}>Employé</SelectItem>
                   </SelectContent>

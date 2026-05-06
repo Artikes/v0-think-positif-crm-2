@@ -21,11 +21,13 @@ import {
   X,
   CheckSquare,
   Calendar,
-  UsersRound
+  UsersRound,
+  Ticket,
+  TicketCheck
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const { profile, signOut, isAdmin } = useAuth();
+  const { profile, signOut, isAdmin, isSuperAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -44,8 +46,14 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/expertise', icon: Tags, label: 'Expertises' },
     { to: '/documents', icon: FileText, label: 'Documents' },
     { to: '/team', icon: UsersRound, label: 'Équipe' },
+    { to: '/tickets', icon: Ticket, label: 'Mes Tickets' },
     { to: '/users', icon: Users, label: 'Utilisateurs' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
+  ];
+
+  // Superadmin-only links
+  const superAdminLinks = [
+    { to: '/ticket-admin', icon: TicketCheck, label: 'Gestion Tickets' },
   ];
 
   const employeeLinks = [
@@ -57,9 +65,14 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/talents', icon: Star, label: 'Jeunes Potentiels' },
     { to: '/documents', icon: FileText, label: 'Documents' },
     { to: '/team', icon: UsersRound, label: 'Équipe' },
+    { to: '/tickets', icon: Ticket, label: 'Mes Tickets' },
   ];
 
-  const links = isAdmin() ? adminLinks : employeeLinks;
+  // Combine links based on role
+  let links = isAdmin() ? adminLinks : employeeLinks;
+  if (isSuperAdmin()) {
+    links = [...links, ...superAdminLinks];
+  }
 
   return (
     <>

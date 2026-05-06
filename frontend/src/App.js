@@ -17,6 +17,8 @@ import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import Schedule from './pages/Schedule';
 import Trombinoscope from './pages/Trombinoscope';
+import Tickets from './pages/Tickets';
+import TicketAdmin from './pages/TicketAdmin';
 import PendingApproval from './pages/PendingApproval';
 import './App.css';
 
@@ -122,12 +124,32 @@ function App() {
               }
             />
 
+            {/* Tickets - all users */}
+            <Route
+              path="/tickets"
+              element={
+                <ProtectedRoute>
+                  <Tickets />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Admin only routes */}
             <Route
               path="/users"
               element={
                 <ProtectedRoute adminOnly>
                   <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Superadmin only routes */}
+            <Route
+              path="/ticket-admin"
+              element={
+                <ProtectedRoute superAdminOnly>
+                  <TicketAdmin />
                 </ProtectedRoute>
               }
             />
