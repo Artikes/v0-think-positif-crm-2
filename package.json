@@ -7,6 +7,7 @@
     "@ai-sdk/xai": "^1.0.0",
     "@supabase/supabase-js": "^2.99.1",
     "ai": "^4.0.0",
+    "googleapis": "^171.4.0",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-router-dom": "^7.13.1",
