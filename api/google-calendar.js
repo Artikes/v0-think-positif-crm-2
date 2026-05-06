@@ -1,12 +1,29 @@
 import { google } from 'googleapis';
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
-
 export default async function handler(req, res) {
+  // Check if environment variables are set
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+
+  if (!clientId || !clientSecret || !redirectUri) {
+    console.error('Missing Google OAuth credentials:', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasRedirectUri: !!redirectUri
+    });
+    return res.status(500).json({ 
+      error: 'Google Calendar non configuré',
+      details: 'Variables d\'environnement manquantes'
+    });
+  }
+
+  // Create OAuth client inside handler to ensure env vars are loaded
+  const oauth2Client = new google.auth.OAuth2(
+    clientId,
+    clientSecret,
+    redirectUri
+  );
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -21,11 +38,11 @@ export default async function handler(req, res) {
   try {
     switch (action) {
       case 'auth-url':
-        return handleGetAuthUrl(req, res);
+        return handleGetAuthUrl(req, res, oauth2Client);
       case 'callback':
-        return handleCallback(req, res);
+        return handleCallback(req, res, oauth2Client);
       case 'fetch-events':
-        return handleFetchEvents(req, res);
+        return handleFetchEvents(req, res, oauth2Client);
       default:
         return res.status(400).json({ error: 'Invalid action' });
     }
@@ -36,7 +53,7 @@ export default async function handler(req, res) {
 }
 
 // Generate OAuth URL for Google Calendar access
-function handleGetAuthUrl(req, res) {
+function handleGetAuthUrl(req, res, oauth2Client) {
   const scopes = [
     'https://www.googleapis.com/auth/calendar.readonly',
   ];
@@ -52,7 +69,7 @@ function handleGetAuthUrl(req, res) {
 }
 
 // Handle OAuth callback and exchange code for tokens
-async function handleCallback(req, res) {
+async function handleCallback(req, res, oauth2Client) {
   const { code } = req.query;
 
   if (!code) {
@@ -79,7 +96,7 @@ async function handleCallback(req, res) {
 }
 
 // Fetch calendar events
-async function handleFetchEvents(req, res) {
+async function handleFetchEvents(req, res, oauth2Client) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
