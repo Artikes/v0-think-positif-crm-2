@@ -20,7 +20,8 @@ import {
   Menu,
   X,
   CheckSquare,
-  Calendar
+  Calendar,
+  UsersRound
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -42,6 +43,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/talents', icon: Star, label: 'Jeunes Potentiels' },
     { to: '/expertise', icon: Tags, label: 'Expertises' },
     { to: '/documents', icon: FileText, label: 'Documents' },
+    { to: '/team', icon: UsersRound, label: 'Équipe' },
     { to: '/users', icon: Users, label: 'Utilisateurs' },
     { to: '/settings', icon: Settings, label: 'Paramètres' },
   ];
@@ -54,6 +56,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/trainers', icon: GraduationCap, label: 'Formateurs' },
     { to: '/talents', icon: Star, label: 'Jeunes Potentiels' },
     { to: '/documents', icon: FileText, label: 'Documents' },
+    { to: '/team', icon: UsersRound, label: 'Équipe' },
   ];
 
   const links = isAdmin() ? adminLinks : employeeLinks;
