@@ -52,7 +52,12 @@ import {
   Clock,
   TrendingDown,
   TrendingUp,
-  Briefcase
+  Briefcase,
+  Upload,
+  FileText,
+  Download,
+  Link,
+  ExternalLink
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -61,6 +66,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import ExportImportButtons from '../components/ExportImportButtons';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 const CLIENT_STATUS = {
   active: { label: 'Actif', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
@@ -68,6 +74,16 @@ const CLIENT_STATUS = {
   inactive: { label: 'Inactif', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
   negotiation: { label: 'Négociation', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
 };
+
+const DOCUMENT_CATEGORIES = [
+  { value: 'contract', label: 'Contrat' },
+  { value: 'proposal', label: 'Proposition commerciale' },
+  { value: 'invoice', label: 'Facture' },
+  { value: 'quote', label: 'Devis' },
+  { value: 'brief', label: 'Brief / Cahier des charges' },
+  { value: 'report', label: 'Rapport' },
+  { value: 'other', label: 'Autre' },
+];
 
 const Clients = () => {
   const { isAdmin } = useAuth();
@@ -91,6 +107,13 @@ const Clients = () => {
   });
   const [activities, setActivities] = useState([]);
   const [newNote, setNewNote] = useState('');
+  const [documents, setDocuments] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [pendingLinks, setPendingLinks] = useState([]);
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkCategory, setNewLinkCategory] = useState('other');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -129,9 +152,131 @@ const Clients = () => {
     }
   };
 
+  const fetchClientDocuments = async (clientId) => {
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('entity_type', 'client')
+        .eq('entity_id', clientId);
+
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  };
+
+  const uploadFilesForEntity = async (entityId, entityType) => {
+    // Upload files
+    for (const pf of pendingFiles) {
+      const file = pf.file;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `${entityType}/${entityId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        continue;
+      }
+
+      await supabase.from('documents').insert([{
+        entity_type: entityType,
+        entity_id: entityId,
+        file_name: file.name,
+        file_path: filePath,
+        file_type: file.type,
+        file_size: file.size,
+        document_category: pf.category
+      }]);
+    }
+
+    // Save links as documents
+    for (const link of pendingLinks) {
+      await supabase.from('documents').insert([{
+        entity_type: entityType,
+        entity_id: entityId,
+        file_name: link.name,
+        file_path: link.url,
+        file_type: 'link',
+        file_size: 0,
+        document_category: link.category
+      }]);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    const newFiles = files.map(f => ({ file: f, category: 'other' }));
+    setPendingFiles(prev => [...prev, ...newFiles]);
+    e.target.value = '';
+  };
+
+  const removePendingFile = (index) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateFileCategory = (index, category) => {
+    setPendingFiles(prev => prev.map((pf, i) => i === index ? { ...pf, category } : pf));
+  };
+
+  const handleAddLink = () => {
+    if (!newLinkUrl.trim() || !newLinkName.trim()) return;
+    setPendingLinks(prev => [...prev, { url: newLinkUrl, name: newLinkName, category: newLinkCategory }]);
+    setNewLinkUrl('');
+    setNewLinkName('');
+    setNewLinkCategory('other');
+  };
+
+  const removePendingLink = (index) => {
+    setPendingLinks(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDownloadDocument = async (doc) => {
+    if (doc.file_type === 'link') {
+      window.open(doc.file_path, '_blank');
+      return;
+    }
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(doc.file_path);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.file_name;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Erreur lors du téléchargement');
+    }
+  };
+
+  const handleDeleteDocument = async (docId) => {
+    if (!window.confirm('Supprimer ce document?')) return;
+    try {
+      const { error } = await supabase.from('documents').delete().eq('id', docId);
+      if (error) throw error;
+      toast.success('Document supprimé');
+      if (selectedClient) fetchClientDocuments(selectedClient.id);
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setUploading(true);
     try {
+      let clientId = selectedClient?.id;
+
       if (selectedClient) {
         // Update existing client
         const { error } = await supabase
@@ -143,22 +288,31 @@ const Clients = () => {
           .eq('id', selectedClient.id);
 
         if (error) throw error;
-        toast.success('Client mis à jour');
       } else {
         // Create new client
-        const { error } = await supabase
+        const { data: newClient, error } = await supabase
           .from('clients')
-          .insert([formData]);
+          .insert([formData])
+          .select()
+          .single();
         if (error) throw error;
-        toast.success('Client ajouté');
+        clientId = newClient.id;
       }
 
+      // Upload pending files and links
+      if (clientId && (pendingFiles.length > 0 || pendingLinks.length > 0)) {
+        await uploadFilesForEntity(clientId, 'client');
+      }
+
+      toast.success(selectedClient ? 'Client mis à jour' : 'Client ajouté');
       setShowAddDialog(false);
       resetForm();
       fetchClients();
     } catch (error) {
       console.error('Error saving client:', error);
       toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -221,12 +375,20 @@ const Clients = () => {
 
   const openDetailDialog = async (client) => {
     setSelectedClient(client);
-    await fetchClientActivities(client.id);
+    await Promise.all([
+      fetchClientActivities(client.id),
+      fetchClientDocuments(client.id)
+    ]);
     setShowDetailDialog(true);
   };
 
   const resetForm = () => {
     setSelectedClient(null);
+    setPendingFiles([]);
+    setPendingLinks([]);
+    setNewLinkUrl('');
+    setNewLinkName('');
+    setNewLinkCategory('other');
     setFormData({
       company_name: '',
       contact_name: '',
@@ -294,7 +456,7 @@ const Clients = () => {
                   Nouveau client
                 </Button>
               </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {selectedClient ? 'Modifier le client' : 'Nouveau client'}
@@ -404,9 +566,107 @@ const Clients = () => {
                     />
                   </div>
                 </div>
+
+                {/* Documents Section */}
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-base font-medium">Documents et Liens</Label>
+                  
+                  <Tabs defaultValue="file" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="file" className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" /> Fichier
+                      </TabsTrigger>
+                      <TabsTrigger value="link" className="flex items-center gap-2">
+                        <Link className="h-4 w-4" /> Lien
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="file" className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          onChange={handleFileSelect}
+                          multiple
+                          className="flex-1"
+                        />
+                      </div>
+                      {pendingFiles.length > 0 && (
+                        <div className="space-y-2">
+                          {pendingFiles.map((pf, index) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="truncate flex-1">{pf.file.name}</span>
+                              <Select value={pf.category} onValueChange={(v) => updateFileCategory(index, v)}>
+                                <SelectTrigger className="w-[140px] h-7 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {DOCUMENT_CATEGORIES.map(cat => (
+                                    <SelectItem key={cat.value} value={cat.value} className="text-xs">{cat.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removePendingFile(index)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="link" className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Nom du lien"
+                          value={newLinkName}
+                          onChange={(e) => setNewLinkName(e.target.value)}
+                        />
+                        <Select value={newLinkCategory} onValueChange={setNewLinkCategory}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DOCUMENT_CATEGORIES.map(cat => (
+                              <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="https://..."
+                          value={newLinkUrl}
+                          onChange={(e) => setNewLinkUrl(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button type="button" variant="outline" onClick={handleAddLink} disabled={!newLinkUrl || !newLinkName}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {pendingLinks.length > 0 && (
+                        <div className="space-y-2">
+                          {pendingLinks.map((link, index) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
+                              <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="truncate flex-1">{link.name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {DOCUMENT_CATEGORIES.find(c => c.value === link.category)?.label}
+                              </Badge>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removePendingLink(index)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </div>
+
                 <DialogFooter>
-                  <Button type="submit" data-testid="client-submit-btn">
-                    {selectedClient ? 'Mettre à jour' : 'Ajouter'}
+                  <Button type="submit" disabled={uploading} data-testid="client-submit-btn">
+                    {uploading ? 'Enregistrement...' : (selectedClient ? 'Mettre à jour' : 'Ajouter')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -627,6 +887,59 @@ const Clients = () => {
                       <p className="text-sm bg-muted/50 p-3 rounded-lg">{selectedClient.notes}</p>
                     </div>
                   )}
+
+                  {/* Documents Section */}
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-4 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Documents ({documents.length})
+                    </h4>
+                    {documents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Aucun document</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {documents.map(doc => {
+                          const catLabel = DOCUMENT_CATEGORIES.find(c => c.value === doc.document_category)?.label;
+                          const isLink = doc.file_type === 'link';
+                          return (
+                            <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {isLink ? (
+                                  <ExternalLink className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                )}
+                                <div className="min-w-0">
+                                  <span className="text-sm truncate block">{doc.file_name}</span>
+                                  {catLabel && (
+                                    <Badge variant="outline" className="text-xs mt-0.5">{catLabel}</Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleDownloadDocument(doc)}
+                                >
+                                  {isLink ? <ExternalLink className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => handleDeleteDocument(doc.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
                   <Separator className="my-4" />
 
