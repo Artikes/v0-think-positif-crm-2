@@ -233,11 +233,32 @@ const Schedule = () => {
     }
   };
 
-  // Google Calendar Integration
+  // Google Calendar Integration - Use XMLHttpRequest to bypass PostHog interceptors
   const handleGoogleConnect = async () => {
     try {
-      const response = await fetch(`/api/google-calendar?action=auth-url&userId=${profile?.id}`);
-      const data = await response.json();
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/api/google-calendar?action=auth-url&userId=${profile?.id}`, true);
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('Invalid JSON response'));
+            }
+          } else {
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              reject(new Error(errorData.error || errorData.details || 'Erreur serveur'));
+            } catch {
+              reject(new Error('Erreur de connexion'));
+            }
+          }
+        };
+        xhr.onerror = () => reject(new Error('Erreur réseau'));
+        xhr.send();
+      });
+
       if (data.authUrl) {
         // Open in popup window
         const width = 500;
@@ -262,18 +283,35 @@ const Schedule = () => {
           }
         };
         window.addEventListener('message', handleMessage);
+      } else if (data.error) {
+        toast.error(data.error);
       }
     } catch (error) {
       console.error('Error getting auth URL:', error);
-      toast.error('Erreur de connexion à Google');
+      toast.error(error.message || 'Erreur de connexion à Google');
     }
   };
 
   const exchangeCodeForToken = async (code) => {
     try {
       setGoogleLoading(true);
-      const response = await fetch(`/api/google-calendar?action=callback&code=${code}`);
-      const data = await response.json();
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/api/google-calendar?action=callback&code=${encodeURIComponent(code)}`, true);
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('Invalid JSON response'));
+            }
+          } else {
+            reject(new Error('Échec de l\'échange du code'));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Erreur réseau'));
+        xhr.send();
+      });
       
       if (data.tokens) {
         localStorage.setItem('google_calendar_token', JSON.stringify(data.tokens));
@@ -296,24 +334,41 @@ const Schedule = () => {
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(endOfWeek.getDate() + 30); // Fetch 30 days
 
-      const response = await fetch('/api/google-calendar?action=fetch-events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/google-calendar?action=fetch-events', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('Invalid JSON response'));
+            }
+          } else if (xhr.status === 401) {
+            // Token expired
+            localStorage.removeItem('google_calendar_token');
+            setGoogleConnected(false);
+            reject(new Error('Session expirée, reconnectez-vous'));
+          } else {
+            reject(new Error('Erreur lors de la récupération'));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Erreur réseau'));
+        xhr.send(JSON.stringify({
           accessToken,
           startDate: startOfWeek.toISOString(),
           endDate: endOfWeek.toISOString()
-        })
+        }));
       });
 
-      const data = await response.json();
       if (data.events) {
         setGoogleEvents(data.events);
         setSelectedGoogleEvents([]);
       }
     } catch (error) {
       console.error('Error fetching Google events:', error);
-      toast.error('Erreur lors de la récupération des événements');
+      toast.error(error.message || 'Erreur lors de la récupération des événements');
     } finally {
       setGoogleLoading(false);
     }
