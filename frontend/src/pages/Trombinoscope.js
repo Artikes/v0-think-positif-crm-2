@@ -25,7 +25,8 @@ import {
   Trash2,
   Edit,
   Camera,
-  Briefcase
+  Briefcase,
+  ImageIcon
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -46,6 +47,7 @@ const Trombinoscope = () => {
     name: '',
     domain: '',
     photo_url: '',
+    banner_url: '',
     email: '',
     linkedin_url: ''
   });
@@ -129,6 +131,7 @@ const Trombinoscope = () => {
       name: member.name,
       domain: member.domain,
       photo_url: member.photo_url || '',
+      banner_url: member.banner_url || '',
       email: member.email || '',
       linkedin_url: member.linkedin_url || ''
     });
@@ -141,6 +144,7 @@ const Trombinoscope = () => {
       name: '',
       domain: '',
       photo_url: '',
+      banner_url: '',
       email: '',
       linkedin_url: ''
     });
@@ -239,8 +243,15 @@ const Trombinoscope = () => {
                 key={member.id} 
                 className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
-                {/* Background gradient accent */}
-                <div className={`absolute inset-x-0 top-0 h-24 ${getAvatarColor(index)} opacity-90`} />
+                {/* Background banner */}
+                {member.banner_url ? (
+                  <div 
+                    className="absolute inset-x-0 top-0 h-24 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${member.banner_url})` }}
+                  />
+                ) : (
+                  <div className={`absolute inset-x-0 top-0 h-24 ${getAvatarColor(index)} opacity-90`} />
+                )}
                 
                 {/* Admin actions */}
                 {isAdmin && (
@@ -327,6 +338,27 @@ const Trombinoscope = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Banner URL */}
+              <div className="space-y-2">
+                <Label htmlFor="banner_url">Bannière (URL)</Label>
+                <div className="flex gap-3 items-center">
+                  <div className="h-12 w-20 rounded overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                    {formData.banner_url ? (
+                      <img src={formData.banner_url} alt="Banner preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <Input
+                    id="banner_url"
+                    value={formData.banner_url}
+                    onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
+                    placeholder="https://..."
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+
               {/* Photo URL */}
               <div className="space-y-2">
                 <Label htmlFor="photo_url">Photo (URL)</Label>
