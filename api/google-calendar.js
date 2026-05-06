@@ -1,29 +1,6 @@
 import { google } from 'googleapis';
 
 export default async function handler(req, res) {
-  // Check if environment variables are set
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
-
-  if (!clientId || !clientSecret || !redirectUri) {
-    console.error('Missing Google OAuth credentials:', {
-      hasClientId: !!clientId,
-      hasClientSecret: !!clientSecret,
-      hasRedirectUri: !!redirectUri
-    });
-    return res.status(500).json({ 
-      error: 'Google Calendar non configuré',
-      details: 'Variables d\'environnement manquantes'
-    });
-  }
-
-  // Create OAuth client inside handler to ensure env vars are loaded
-  const oauth2Client = new google.auth.OAuth2(
-    clientId,
-    clientSecret,
-    redirectUri
-  );
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -33,7 +10,37 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // Debug: Log which env vars are present (without revealing values)
+  console.log('[v0] Google Calendar API called, checking env vars...');
+  console.log('[v0] GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID);
+  console.log('[v0] GOOGLE_CLIENT_SECRET exists:', !!process.env.GOOGLE_CLIENT_SECRET);
+  console.log('[v0] GOOGLE_REDIRECT_URI exists:', !!process.env.GOOGLE_REDIRECT_URI);
+  
+  // Get environment variables
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+
+  // Check if all required env vars are present
+  const missingVars = [];
+  if (!clientId) missingVars.push('GOOGLE_CLIENT_ID');
+  if (!clientSecret) missingVars.push('GOOGLE_CLIENT_SECRET');
+  if (!redirectUri) missingVars.push('GOOGLE_REDIRECT_URI');
+
+  if (missingVars.length > 0) {
+    console.error('[v0] Missing environment variables:', missingVars);
+    return res.status(500).json({ 
+      error: 'Google Calendar non configuré',
+      details: `Variables manquantes: ${missingVars.join(', ')}`,
+      missing: missingVars
+    });
+  }
+
+  // Create OAuth client
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
   const { action } = req.query;
+  console.log('[v0] Action requested:', action);
 
   try {
     switch (action) {
@@ -44,28 +51,32 @@ export default async function handler(req, res) {
       case 'fetch-events':
         return handleFetchEvents(req, res, oauth2Client);
       default:
-        return res.status(400).json({ error: 'Invalid action' });
+        return res.status(400).json({ error: 'Action invalide' });
     }
   } catch (error) {
-    console.error('Google Calendar API error:', error);
-    return res.status(500).json({ error: 'Internal server error', message: error.message });
+    console.error('[v0] Google Calendar API error:', error);
+    return res.status(500).json({ error: 'Erreur serveur', message: error.message });
   }
 }
 
 // Generate OAuth URL for Google Calendar access
 function handleGetAuthUrl(req, res, oauth2Client) {
-  const scopes = [
-    'https://www.googleapis.com/auth/calendar.readonly',
-  ];
+  try {
+    const scopes = ['https://www.googleapis.com/auth/calendar.readonly'];
 
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: scopes,
-    prompt: 'consent',
-    state: req.query.userId || ''
-  });
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: scopes,
+      prompt: 'consent',
+      state: req.query.userId || ''
+    });
 
-  return res.status(200).json({ authUrl });
+    console.log('[v0] Generated auth URL successfully');
+    return res.status(200).json({ authUrl });
+  } catch (error) {
+    console.error('[v0] Error generating auth URL:', error);
+    return res.status(500).json({ error: 'Erreur lors de la génération de l\'URL' });
+  }
 }
 
 // Handle OAuth callback and exchange code for tokens
@@ -73,14 +84,13 @@ async function handleCallback(req, res, oauth2Client) {
   const { code } = req.query;
 
   if (!code) {
-    return res.status(400).json({ error: 'No authorization code provided' });
+    return res.status(400).json({ error: 'Code d\'autorisation manquant' });
   }
 
   try {
     const { tokens } = await oauth2Client.getToken(code);
+    console.log('[v0] Token exchange successful');
     
-    // Return tokens to be stored client-side (in this simplified version)
-    // In production, you'd want to store these securely server-side
     return res.status(200).json({ 
       success: true,
       tokens: {
@@ -90,21 +100,21 @@ async function handleCallback(req, res, oauth2Client) {
       }
     });
   } catch (error) {
-    console.error('Error exchanging code for tokens:', error);
-    return res.status(500).json({ error: 'Failed to exchange authorization code' });
+    console.error('[v0] Error exchanging code for tokens:', error);
+    return res.status(500).json({ error: 'Échec de l\'échange du code d\'autorisation' });
   }
 }
 
 // Fetch calendar events
 async function handleFetchEvents(req, res, oauth2Client) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
   const { accessToken, startDate, endDate } = req.body;
 
   if (!accessToken) {
-    return res.status(400).json({ error: 'No access token provided' });
+    return res.status(400).json({ error: 'Token d\'accès manquant' });
   }
 
   try {
@@ -135,12 +145,13 @@ async function handleFetchEvents(req, res, oauth2Client) {
       source: 'google'
     })) || [];
 
+    console.log('[v0] Fetched', events.length, 'events from Google Calendar');
     return res.status(200).json({ events });
   } catch (error) {
-    console.error('Error fetching calendar events:', error);
+    console.error('[v0] Error fetching calendar events:', error);
     if (error.code === 401) {
-      return res.status(401).json({ error: 'Token expired or invalid' });
+      return res.status(401).json({ error: 'Token expiré ou invalide' });
     }
-    return res.status(500).json({ error: 'Failed to fetch calendar events' });
+    return res.status(500).json({ error: 'Échec de la récupération des événements' });
   }
 }
