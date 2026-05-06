@@ -38,8 +38,12 @@ import {
   Edit,
   Trash2,
   Filter,
-  X
+  X,
+  Download,
+  Loader2,
+  Check
 } from 'lucide-react';
+import { Checkbox } from '../components/ui/checkbox';
 import ExportImportButtons from '../components/ExportImportButtons';
 
 const EVENT_TYPES = {
@@ -62,6 +66,11 @@ const Schedule = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [filterAssignee, setFilterAssignee] = useState('all');
+  const [showGoogleImport, setShowGoogleImport] = useState(false);
+  const [googleEvents, setGoogleEvents] = useState([]);
+  const [selectedGoogleEvents, setSelectedGoogleEvents] = useState([]);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -224,6 +233,161 @@ const Schedule = () => {
     }
   };
 
+  // Google Calendar Integration
+  const handleGoogleConnect = async () => {
+    try {
+      const response = await fetch(`/api/google-calendar?action=auth-url&userId=${profile?.id}`);
+      const data = await response.json();
+      if (data.authUrl) {
+        // Open in popup window
+        const width = 500;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const popup = window.open(
+          data.authUrl,
+          'Google Calendar Authorization',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+        
+        // Listen for the callback
+        const handleMessage = async (event) => {
+          if (event.data?.type === 'google-auth-callback') {
+            window.removeEventListener('message', handleMessage);
+            popup?.close();
+            
+            if (event.data.code) {
+              await exchangeCodeForToken(event.data.code);
+            }
+          }
+        };
+        window.addEventListener('message', handleMessage);
+      }
+    } catch (error) {
+      console.error('Error getting auth URL:', error);
+      toast.error('Erreur de connexion à Google');
+    }
+  };
+
+  const exchangeCodeForToken = async (code) => {
+    try {
+      setGoogleLoading(true);
+      const response = await fetch(`/api/google-calendar?action=callback&code=${code}`);
+      const data = await response.json();
+      
+      if (data.tokens) {
+        localStorage.setItem('google_calendar_token', JSON.stringify(data.tokens));
+        setGoogleConnected(true);
+        toast.success('Connecté à Google Calendar');
+        await fetchGoogleEvents(data.tokens.access_token);
+      }
+    } catch (error) {
+      console.error('Error exchanging code:', error);
+      toast.error('Erreur lors de l\'authentification');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const fetchGoogleEvents = async (accessToken) => {
+    try {
+      setGoogleLoading(true);
+      const startOfWeek = getStartOfWeek(currentDate);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 30); // Fetch 30 days
+
+      const response = await fetch('/api/google-calendar?action=fetch-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken,
+          startDate: startOfWeek.toISOString(),
+          endDate: endOfWeek.toISOString()
+        })
+      });
+
+      const data = await response.json();
+      if (data.events) {
+        setGoogleEvents(data.events);
+        setSelectedGoogleEvents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching Google events:', error);
+      toast.error('Erreur lors de la récupération des événements');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleOpenGoogleImport = async () => {
+    setShowGoogleImport(true);
+    const storedToken = localStorage.getItem('google_calendar_token');
+    if (storedToken) {
+      const tokens = JSON.parse(storedToken);
+      if (tokens.expiry_date > Date.now()) {
+        setGoogleConnected(true);
+        await fetchGoogleEvents(tokens.access_token);
+      } else {
+        setGoogleConnected(false);
+        localStorage.removeItem('google_calendar_token');
+      }
+    }
+  };
+
+  const toggleGoogleEventSelection = (eventId) => {
+    setSelectedGoogleEvents(prev => 
+      prev.includes(eventId) 
+        ? prev.filter(id => id !== eventId)
+        : [...prev, eventId]
+    );
+  };
+
+  const selectAllGoogleEvents = () => {
+    if (selectedGoogleEvents.length === googleEvents.length) {
+      setSelectedGoogleEvents([]);
+    } else {
+      setSelectedGoogleEvents(googleEvents.map(e => e.id));
+    }
+  };
+
+  const importSelectedGoogleEvents = async () => {
+    if (selectedGoogleEvents.length === 0) {
+      toast.error('Sélectionnez au moins un événement');
+      return;
+    }
+
+    try {
+      setGoogleLoading(true);
+      const eventsToImport = googleEvents.filter(e => selectedGoogleEvents.includes(e.id));
+      
+      const mappedEvents = eventsToImport.map(event => ({
+        title: event.title,
+        description: event.description || null,
+        start_time: event.start_time,
+        end_time: event.end_time,
+        event_type: 'other',
+        location: event.location || null,
+        color: EVENT_TYPES.other.color,
+        user_id: profile?.id,
+        assigned_to: profile?.id,
+        google_event_id: event.id
+      }));
+
+      const { error } = await supabase.from('schedules').insert(mappedEvents);
+      if (error) throw error;
+
+      toast.success(`${mappedEvents.length} événement(s) importé(s)`);
+      setShowGoogleImport(false);
+      setSelectedGoogleEvents([]);
+      fetchEvents();
+    } catch (error) {
+      console.error('Error importing events:', error);
+      toast.error('Erreur lors de l\'importation');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const openEditDialog = (event) => {
     setSelectedEvent(event);
     setFormData({
@@ -336,6 +500,10 @@ const Schedule = () => {
               importColumns={['title', 'description', 'start_time', 'end_time', 'event_type', 'location', 'color']}
               onImportComplete={fetchEvents}
             />
+            <Button variant="outline" onClick={handleOpenGoogleImport}>
+              <Download className="h-4 w-4 mr-2" />
+              Importer Google Calendar
+            </Button>
             <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button data-testid="add-event-btn">
@@ -685,6 +853,160 @@ const Schedule = () => {
           })}
         </div>
       </div>
+
+      {/* Google Calendar Import Dialog */}
+      <Dialog open={showGoogleImport} onOpenChange={setShowGoogleImport}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+                <path d="M19.5 3.5H4.5C3.67 3.5 3 4.17 3 5V19C3 19.83 3.67 20.5 4.5 20.5H19.5C20.33 20.5 21 19.83 21 19V5C21 4.17 20.33 3.5 19.5 3.5Z" stroke="#4285F4" strokeWidth="2"/>
+                <path d="M16 2V5" stroke="#EA4335" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M8 2V5" stroke="#EA4335" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3 9H21" stroke="#FBBC05" strokeWidth="2"/>
+                <rect x="7" y="12" width="4" height="4" fill="#34A853"/>
+              </svg>
+              Importer depuis Google Calendar
+            </DialogTitle>
+            <DialogDescription>
+              Connectez-vous à votre compte Google pour importer vos événements
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {!googleConnected ? (
+              <div className="text-center py-8">
+                <div className="mb-4">
+                  <svg viewBox="0 0 24 24" className="h-16 w-16 mx-auto opacity-50" fill="none">
+                    <path d="M19.5 3.5H4.5C3.67 3.5 3 4.17 3 5V19C3 19.83 3.67 20.5 4.5 20.5H19.5C20.33 20.5 21 19.83 21 19V5C21 4.17 20.33 3.5 19.5 3.5Z" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M16 2V5M8 2V5M3 9H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <p className="text-muted-foreground mb-4">
+                  Connectez votre compte Google pour voir et importer vos événements
+                </p>
+                <Button onClick={handleGoogleConnect} disabled={googleLoading}>
+                  {googleLoading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Connexion...</>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      Se connecter avec Google
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : googleLoading ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Chargement des événements...</p>
+              </div>
+            ) : googleEvents.length === 0 ? (
+              <div className="text-center py-8">
+                <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-muted-foreground">Aucun événement trouvé dans les 30 prochains jours</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={selectedGoogleEvents.length === googleEvents.length}
+                      onCheckedChange={selectAllGoogleEvents}
+                    />
+                    <span className="text-sm">Tout sélectionner ({googleEvents.length} événements)</span>
+                  </div>
+                  <Badge variant="outline">
+                    {selectedGoogleEvents.length} sélectionné(s)
+                  </Badge>
+                </div>
+                <ScrollArea className="h-[300px] border rounded-lg">
+                  <div className="p-2 space-y-2">
+                    {googleEvents.map((event) => (
+                      <div 
+                        key={event.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedGoogleEvents.includes(event.id) 
+                            ? 'bg-primary/10 border-primary' 
+                            : 'hover:bg-muted'
+                        }`}
+                        onClick={() => toggleGoogleEventSelection(event.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Checkbox 
+                            checked={selectedGoogleEvents.includes(event.id)}
+                            onCheckedChange={() => toggleGoogleEventSelection(event.id)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{event.title}</p>
+                            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                              <CalendarIcon className="h-3 w-3" />
+                              {new Date(event.start_time).toLocaleDateString('fr-FR', {
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short'
+                              })}
+                              {!event.isAllDay && (
+                                <>
+                                  <Clock className="h-3 w-3 ml-2" />
+                                  {new Date(event.start_time).toLocaleTimeString('fr-FR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                  {' - '}
+                                  {new Date(event.end_time).toLocaleTimeString('fr-FR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </>
+                              )}
+                            </div>
+                            {event.location && (
+                              <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
+                                <MapPin className="h-3 w-3" />
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
+                          {selectedGoogleEvents.includes(event.id) && (
+                            <Check className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowGoogleImport(false)}>
+              Annuler
+            </Button>
+            {googleConnected && googleEvents.length > 0 && (
+              <Button 
+                onClick={importSelectedGoogleEvents} 
+                disabled={selectedGoogleEvents.length === 0 || googleLoading}
+              >
+                {googleLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importation...</>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Importer ({selectedGoogleEvents.length})
+                  </>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
