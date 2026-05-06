@@ -143,7 +143,8 @@ export const AuthProvider = ({ children }) => {
     setProfile(null);
   };
 
-  const isAdmin = () => profile?.role === ROLES.ADMIN;
+  const isSuperAdmin = () => profile?.role === ROLES.SUPERADMIN;
+  const isAdmin = () => profile?.role === ROLES.ADMIN || profile?.role === ROLES.SUPERADMIN;
   const isEmployee = () => profile?.role === ROLES.EMPLOYEE;
   const isApproved = () => profile?.approved === true;
 
@@ -166,6 +167,7 @@ export const AuthProvider = ({ children }) => {
       signInWithGoogle,
       signOut,
       logout,
+      isSuperAdmin,
       isAdmin,
       isEmployee,
       isApproved,
