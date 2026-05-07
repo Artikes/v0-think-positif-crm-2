@@ -234,7 +234,29 @@ const Schedule = () => {
     }
   };
 
-  // Calendar Import Functions
+  // Calendar Import Functions - Using XMLHttpRequest to avoid PostHog fetch interceptor
+  const makeXHRRequest = (url, body) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onload = function() {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(data);
+          } else {
+            reject(new Error(data.error || 'Erreur serveur'));
+          }
+        } catch (e) {
+          reject(new Error('Réponse invalide du serveur'));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Erreur réseau'));
+      xhr.send(JSON.stringify(body));
+    });
+  };
+
   const handleImportFromUrl = async () => {
     if (!importUrl.trim()) {
       toast.error('Veuillez entrer une URL');
@@ -243,17 +265,7 @@ const Schedule = () => {
 
     try {
       setImportLoading(true);
-      const response = await fetch('/api/import-calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ icsUrl: importUrl })
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'importation');
-      }
+      const data = await makeXHRRequest('/api/import-calendar', { icsUrl: importUrl });
 
       if (data.events && data.events.length > 0) {
         setImportedEvents(data.events);
@@ -277,18 +289,7 @@ const Schedule = () => {
     try {
       setImportLoading(true);
       const content = await file.text();
-      
-      const response = await fetch('/api/import-calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ icsContent: content })
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'importation');
-      }
+      const data = await makeXHRRequest('/api/import-calendar', { icsContent: content });
 
       if (data.events && data.events.length > 0) {
         setImportedEvents(data.events);
