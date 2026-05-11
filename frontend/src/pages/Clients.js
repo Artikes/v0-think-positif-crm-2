@@ -745,11 +745,9 @@ const Clients = () => {
                         <DropdownMenuItem onClick={() => openEditDialog(client)}>
                           <Edit className="h-4 w-4 mr-2" /> Modifier
                         </DropdownMenuItem>
-                        {isAdmin() && (
-                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(client.id)}>
-                            <Trash2 className="h-4 w-4 mr-2" /> Supprimer
-                          </DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(client.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" /> Supprimer
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
