@@ -133,6 +133,7 @@ const Trombinoscope = () => {
       photo_url: member.photo_url || '',
       banner_url: member.banner_url || '',
       email: member.email || '',
+      phone: member.phone || '',
       linkedin_url: member.linkedin_url || ''
     });
     setShowAddDialog(true);
@@ -146,6 +147,7 @@ const Trombinoscope = () => {
       photo_url: '',
       banner_url: '',
       email: '',
+      phone: '',
       linkedin_url: ''
     });
   };
@@ -309,6 +311,16 @@ const Trombinoscope = () => {
                         <Mail className="h-4 w-4" />
                       </Button>
                     )}
+                    {member.phone && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full hover:bg-green-500/10 hover:text-green-600"
+                        onClick={() => window.location.href = `tel:${member.phone}`}
+                      >
+                        <Phone className="h-4 w-4" />
+                      </Button>
+                    )}
                     {member.linkedin_url && (
                       <Button
                         variant="ghost"
@@ -414,6 +426,18 @@ const Trombinoscope = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="jean@example.com"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="phone">Téléphone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+33 6 12 34 56 78"
                 />
               </div>
 
