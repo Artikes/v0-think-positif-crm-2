@@ -26,7 +26,8 @@ import {
   Edit,
   Camera,
   Briefcase,
-  ImageIcon
+  ImageIcon,
+  Phone
 } from 'lucide-react';
 import {
   DropdownMenu,
